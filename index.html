@@ -44,6 +44,37 @@
   .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .rules li { margin-bottom: 4px; }
+
+  /* dashboard v2 */
+  .periods { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pp { border: 1px solid var(--line); background: #fff; padding: 7px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+  .pp[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .kpi { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .kpi__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .kpi__v { font-size: 30px; font-weight: 800; margin-top: 6px; line-height: 1.1; }
+  .kpi__sub { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .d { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .d.up { background: #e4f1dc; color: #2f6b1a; } .d.down { background: #f8e4da; color: #a4561e; } .d.flat { background: #eee; color: var(--muted); }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; overflow: hidden; }
+  .panel__head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .chart { display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 4px; height: 170px; padding: 24px 16px 8px; }
+  .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; min-width: 0; }
+  .col__bar { background: var(--green); border-radius: 4px 4px 0 0; position: relative; max-width: 26px; margin: 0 auto; width: 100%; }
+  .col__bar i { position: absolute; top: -17px; left: -10px; right: -10px; text-align: center; font-style: normal; font-size: 11px; color: var(--muted); }
+  .col__lbl { height: 16px; font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; white-space: nowrap; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .list li:last-child { border-bottom: 0; } .list li:hover { background: #faf9f6; }
+  .pad { padding: 12px 16px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; color: var(--muted); }
+  .strip b { color: var(--ink); }
+  .potential { margin-top: 12px; padding: 12px 16px; border-radius: 12px; background: #fbf5e8; border: 1px dashed var(--beige); font-size: 13px; }
+  @media (max-width: 800px) { .kpis { grid-template-columns: 1fr 1fr; } .two { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } .v { font-size: 22px; } }
 </style>
 </head>
@@ -88,46 +119,100 @@
   function card(k, v, sub, cls) { return '<div class="card ' + (cls || '') + '"><div class="k">' + k + '</div><div class="v">' + v + (sub ? ' <small>' + sub + '</small>' : '') + '</div></div>'; }
 
   // ---------- dashboard ----------
+  var PERIODS = [
+    { id: 'today', label: 'היום' }, { id: 'yesterday', label: 'אתמול' },
+    { id: '7', label: '7 ימים' }, { id: '30', label: '30 ימים' }, { id: 'all', label: 'מתחילת המועדון' }
+  ];
+  var period = '7';
+  function range(id) {
+    var now = new Date(), start = new Date(now); start.setHours(0, 0, 0, 0);
+    if (id === 'today') return [start, now];
+    if (id === 'yesterday') { var y = new Date(start); y.setDate(y.getDate() - 1); return [y, start]; }
+    if (id === '7') { var a = new Date(start); a.setDate(a.getDate() - 6); return [a, now]; }
+    if (id === '30') { var b = new Date(start); b.setDate(b.getDate() - 29); return [b, now]; }
+    return [new Date('2026-10-22T00:00:00+03:00'), now];
+  }
+  function delta(cur, prev) {
+    if (period === 'all') return '';
+    if (!prev && !cur) return '<span class="d flat">—</span>';
+    if (!prev) return '<span class="d up">חדש</span>';
+    var p = Math.round(((cur - prev) / prev) * 100);
+    return '<span class="d ' + (p > 0 ? 'up' : p < 0 ? 'down' : 'flat') + '">' + (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p) + '%</span>';
+  }
+  function kpi(label, value, d, sub) {
+    return '<div class="kpi"><div class="kpi__top"><span class="k">' + label + '</span>' + (d || '') + '</div><div class="kpi__v">' + value + '</div>' +
+      (sub ? '<div class="kpi__sub">' + sub + '</div>' : '') + '</div>';
+  }
+  function chart(daily, key, fmt) {
+    var max = Math.max.apply(null, daily.map(function (x) { return Number(x[key]) || 0; }).concat([1]));
+    return '<div class="chart">' + daily.map(function (x, i) {
+      var v = Number(x[key]) || 0;
+      var dd = new Date(x.day + 'T12:00:00');
+      var lbl = (i % 5 === 4 || i === daily.length - 1) ? dd.getDate() + '.' + (dd.getMonth() + 1) : '';
+      return '<div class="col" title="' + dd.toLocaleDateString('he-IL') + ': ' + fmt(v) + '"><div class="col__bar" style="height:' + Math.max(2, Math.round((v / max) * 100)) + '%">' +
+        (v ? '<i>' + (key === 'revenue' ? Math.round(v) : v) + '</i>' : '') + '</div><div class="col__lbl">' + lbl + '</div></div>';
+    }).join('') + '</div>';
+  }
+  var chartKey = 'joined';
+
   async function dashboard() {
-    view.innerHTML = '<p class="muted">טוען…</p>';
-    var r = await api('dashboard');
-    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
-    var d = r.dashboard;
-    var t = d.tiers || {};
-    var days = d.daily_joins || [];
-    var max = Math.max.apply(null, days.map(function (x) { return x.n; }).concat([1]));
-    view.innerHTML =
-      '<div class="grid">' +
-        card('חברי מועדון', num(d.members_joined), '', 'hl') +
-        card('הצטרפו היום', num(d.joined_today)) +
-        card('הצטרפו ב-7 ימים', num(d.joined_7d)) +
-        card('קנו ועוד לא הצטרפו', num(d.pending_buyers), 'עם נקודות שמחכות') +
+    var pills = '<div class="periods">' + PERIODS.map(function (p) {
+      return '<button class="pp" data-p="' + p.id + '" aria-pressed="' + (p.id === period) + '">' + p.label + '</button>';
+    }).join('') + '</div>';
+    view.innerHTML = pills + '<p class="muted">טוען…</p>';
+    var rg = range(period);
+    var r = await api('stats', { from: rg[0].toISOString(), to: rg[1].toISOString() });
+    if (!r.ok) { view.innerHTML = pills + '<p class="err">' + esc(r.message) + '</p>'; bindPeriods(); return; }
+    var c = r.stats.current, p = r.stats.previous, t = r.stats.totals, tiers = t.tiers || {};
+    var aov = c.orders ? c.revenue / c.orders : 0;
+    var roi = c.redeemed ? c.revenue / c.redeemed : 0;
+    var rate = c.earned ? Math.round((c.redeemed / c.earned) * 100) : 0;
+    view.innerHTML = pills +
+      '<div class="kpis">' +
+        kpi('הצטרפו למועדון', num(c.joined), delta(c.joined, p.joined), 'סה״כ ' + num(t.members) + ' חברים') +
+        kpi('הכנסה מחברי מועדון', nis(c.revenue), delta(c.revenue, p.revenue), num(c.orders) + ' הזמנות · ממוצע ' + nis(aov)) +
+        kpi('נקודות שמומשו', nis(c.redeemed), delta(c.redeemed, p.redeemed), num(c.redemptions) + ' הזמנות עם נקודות') +
+        kpi('החזר על כל ₪ הנחה', roi ? roi.toFixed(1) + ' ₪' : '—', '', 'הכנסה מחברים ÷ נקודות שמומשו') +
       '</div>' +
-      '<h2>כסף</h2><div class="grid">' +
-        card('נקודות שמומשו', nis(d.redeemed_total), num(d.redemptions_used) + ' הזמנות', 'hl') +
-        card('מומשו ב-30 יום', nis(d.redeemed_30d)) +
-        card('יתרות של חברים', nis(d.balance_members), 'אפשר לממש') +
-        card('יתרות שמחכות', nis(d.balance_pending), 'למי שעוד לא הצטרף') +
+      '<div class="panel">' +
+        '<div class="panel__head"><b>30 הימים האחרונים</b><div class="seg">' +
+          '<button data-c="joined" aria-pressed="' + (chartKey === 'joined') + '">הצטרפויות</button>' +
+          '<button data-c="revenue" aria-pressed="' + (chartKey === 'revenue') + '">הכנסה מחברים</button></div></div>' +
+        chart(r.stats.daily, chartKey, chartKey === 'revenue' ? nis : num) +
       '</div>' +
-      '<h2>מה החברים קנו מאז שהצטרפו</h2><div class="grid">' +
-        card('הזמנות של חברים', num(d.member_orders_since_launch), '', 'hl') +
-        card('הכנסה מהזמנות חברים', nis(d.member_revenue_since_launch), 'לפני משלוח') +
-        card('חברים שקנו', num(d.members_bought_after_join), d.members_joined ? 'מתוך ' + num(d.members_joined) : '') +
-        card('דרגות', num(t.bronze || 0) + ' / ' + num(t.silver || 0) + ' / ' + num(t.gold || 0), 'ארד / כסף / זהב') +
+      '<div class="two">' +
+        '<div class="panel"><div class="panel__head"><b>הצטרפו לאחרונה</b></div>' +
+          (r.stats.recent_joins.length ? '<ul class="list">' + r.stats.recent_joins.map(function (m) {
+            return '<li class="row" data-id="' + esc(m.id) + '"><span><b>' + esc(((m.first_name || '') + ' ' + (m.last_name || '')).trim()) + '</b> ' + tierPill(m.tier) +
+              '</span><span class="muted">' + when(m.joined_at) + ' · ' + nis(m.balance) + '</span></li>';
+          }).join('') + '</ul>' : '<p class="muted pad">עוד אין.</p>') + '</div>' +
+        '<div class="panel"><div class="panel__head"><b>מימושים אחרונים</b></div>' +
+          (r.stats.recent_redemptions.length ? '<ul class="list">' + r.stats.recent_redemptions.map(function (x) {
+            return '<li class="row" data-id="' + esc(x.id) + '"><span><b>' + esc(((x.first_name || '') + ' ' + (x.last_name || '')).trim()) + '</b> <span class="muted">' + esc(x.order_name || '') +
+              '</span></span><span><span class="minus">−' + nis(x.points) + '</span>' + (x.order_total ? ' <span class="muted">מתוך ' + nis(x.order_total) + '</span>' : '') + '</span></li>';
+          }).join('') + '</ul>' : '<p class="muted pad">עוד לא מומשו נקודות.</p>') + '</div>' +
       '</div>' +
-      '<h2>הצטרפויות ב-30 הימים האחרונים</h2>' +
-      (days.length
-        ? '<div class="bars">' + days.map(function (x) { return '<div class="bar" title="' + esc(day(x.day)) + ': ' + x.n + '" style="height:' + Math.round((x.n / max) * 100) + '%"><span>' + x.n + '</span></div>'; }).join('') + '</div>'
-        : '<p class="muted">עוד אין הצטרפויות.</p>') +
-      '<h2>הצטרפו לאחרונה</h2>' +
-      ((d.recent_joins || []).length
-        ? '<table><thead><tr><th>שם</th><th>מייל</th><th>הצטרפות</th><th>דרגה</th><th>יתרה</th></tr></thead><tbody>' +
-          d.recent_joins.map(function (m) {
-            return '<tr class="row" data-id="' + esc(m.id) + '"><td>' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</td><td>' + esc(m.email || '') +
-              '</td><td>' + day(m.joined_at) + '</td><td>' + tierPill(m.tier) + '</td><td>' + nis(m.balance) + '</td></tr>';
-          }).join('') + '</tbody></table>'
-        : '<p class="muted">עוד אין חברים.</p>');
+      '<div class="strip">' +
+        '<span>יתרות פתוחות של חברים: <b>' + nis(t.balance_members) + '</b></span>' +
+        '<span>קודים פעילים: <b>' + num(t.codes_active) + '</b></span>' +
+        '<span>דרגות: <b>' + num(tiers.bronze || 0) + '</b> ארד · <b>' + num(tiers.silver || 0) + '</b> כסף · <b>' + num(tiers.gold || 0) + '</b> זהב</span>' +
+        '<span>אחוז מימוש: <b>' + rate + '%</b></span>' +
+      '</div>' +
+      '<div class="potential"><b>💡 פוטנציאל:</b> ' + num(t.pending_buyers) + ' לקוחות מהעבר עוד לא הצטרפו, ויש להם ' + nis(t.balance_pending) + ' בנקודות שמחכות. כל אחד מהם הוא סיבה לקמפיין.</div>';
+    bindPeriods();
+    view.querySelectorAll('[data-c]').forEach(function (b) { b.onclick = function () { chartKey = b.getAttribute('data-c'); dashboard(); }; });
     bindRows();
+  }
+  function bindPeriods() {
+    view.querySelectorAll('.pp').forEach(function (b) { b.onclick = function () { period = b.getAttribute('data-p'); dashboard(); }; });
+  }
+  function when(d) {
+    var x = new Date(d), today = new Date(); today.setHours(0, 0, 0, 0);
+    var hm = x.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    if (x >= today) return 'היום ' + hm;
+    var y = new Date(today); y.setDate(y.getDate() - 1);
+    if (x >= y) return 'אתמול ' + hm;
+    return x.toLocaleDateString('he-IL');
   }
 
   // ---------- members ----------
@@ -153,7 +238,7 @@
     bindRows();
   }
   function bindRows() {
-    view.querySelectorAll('tr.row').forEach(function (tr) { tr.onclick = function () { memberDetail(tr.getAttribute('data-id')); }; });
+    view.querySelectorAll('.row').forEach(function (tr) { tr.onclick = function () { memberDetail(tr.getAttribute('data-id')); }; });
   }
 
   async function memberDetail(id) {

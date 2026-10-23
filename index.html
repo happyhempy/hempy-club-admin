@@ -86,6 +86,14 @@
   .strip b { color: var(--ink); }
   .kpi.skel { height: 104px; background: linear-gradient(90deg, #fff 0%, #f1efe9 50%, #fff 100%); background-size: 200% 100%; animation: sk 1.2s infinite; }
   @keyframes sk { to { background-position: -200% 0; } }
+  .minis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+  .mini { padding: 12px 16px; border-left: 1px solid var(--line); }
+  .mini:last-child { border-left: 0; }
+  .mini__v { font-size: 24px; font-weight: 800; margin-top: 4px; }
+  .two--flush { gap: 0; margin: 0; }
+  .two--flush > div:first-child { border-left: 1px solid var(--line); }
+  .panel__sub { padding: 10px 16px; font-size: 12px; font-weight: 700; color: var(--muted); background: #faf9f6; border-bottom: 1px solid var(--line); }
+  @media (max-width: 800px) { .minis { grid-template-columns: 1fr 1fr; } .two--flush > div:first-child { border-left: 0; border-bottom: 1px solid var(--line); } }
   .potential { margin-top: 12px; padding: 12px 16px; border-radius: 12px; background: #fbf5e8; border: 1px dashed var(--beige); font-size: 13px; }
   @media (max-width: 800px) { .kpis { grid-template-columns: 1fr 1fr; } .two { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } .v { font-size: 22px; } }
@@ -228,6 +236,7 @@
               '</span></span><span><span class="minus">−' + nis(x.points) + '</span>' + (x.order_total ? ' <span class="muted">מתוך ' + nis(x.order_total) + '</span>' : '') + '</span></li>';
           }).join('') + '</ul>' : '<p class="muted pad">עוד לא מומשו נקודות.</p>') + '</div>' +
       '</div>' +
+      referralPanel(r.stats.referrals || {}) +
       '<div class="strip">' +
         '<span>יתרות פתוחות של חברים: <b>' + nis(t.balance_members) + '</b></span>' +
         '<span>קודים פעילים: <b>' + num(t.codes_active) + '</b></span>' +
@@ -238,6 +247,28 @@
     bindPeriods();
     view.querySelectorAll('[data-c]').forEach(function (b) { b.onclick = function () { chartKey = b.getAttribute('data-c'); dashboard(); }; });
     bindRows();
+  }
+  function referralPanel(rf) {
+    var SRC = { whatsapp: '💬 וואטסאפ', copy: '🔗 קישור' };
+    var mini = function (k, v, sub) { return '<div class="mini"><div class="k">' + k + '</div><div class="mini__v">' + v + '</div>' + (sub ? '<div class="kpi__sub">' + sub + '</div>' : '') + '</div>'; };
+    return '<div class="panel"><div class="panel__head"><b>🎁 חבר מביא חבר</b><span class="muted">בתקופה שנבחרה</span></div>' +
+      '<div class="minis">' +
+        mini('שיתופים בוואטסאפ', num(rf.shares_whatsapp), num(rf.sharers) + ' חברים שיתפו') +
+        mini('העתקות קישור', num(rf.shares_copy)) +
+        mini('חברים שהצטרפו דרך חבר', num(rf.joined), 'מוואטסאפ ' + num(rf.joined_whatsapp) + ' · מקישור ' + num(rf.joined_copy)) +
+        mini('חברים חדשים שקנו', num(rf.bought), 'מי שהזמין קיבל 20 ₪') +
+      '</div>' +
+      '<div class="two two--flush">' +
+        '<div><div class="panel__sub">הצטרפו דרך חבר</div>' +
+          ((rf.recent || []).length ? '<ul class="list">' + rf.recent.map(function (x) {
+            return '<li class="row" data-id="' + esc(x.friend_id) + '"><span><b>' + esc(x.friend || 'חבר/ה') + '</b> <span class="muted">דרך ' + esc(x.referrer || '') + '</span></span>' +
+              '<span class="muted">' + (SRC[x.source] || 'לא ידוע') + ' · ' + (x.status === 'rewarded' ? '<span class="plus">קנה/תה ✓</span>' : 'עוד לא קנה/תה') + '</span></li>';
+          }).join('') + '</ul>' : '<p class="muted pad">עוד אף אחד לא הצטרף דרך חבר.</p>') + '</div>' +
+        '<div><div class="panel__sub">משתפים מובילים</div>' +
+          ((rf.top_sharers || []).length ? '<ul class="list">' + rf.top_sharers.map(function (x) {
+            return '<li class="row" data-id="' + esc(x.id) + '"><span><b>' + esc(x.name || '') + '</b></span><span class="muted">' + x.n + ' שיתופים · ' + x.friends + ' הצטרפו</span></li>';
+          }).join('') + '</ul>' : '<p class="muted pad">עוד אין שיתופים בתקופה הזו.</p>') + '</div>' +
+      '</div></div>';
   }
   function bindPeriods() {
     view.querySelectorAll('.pp').forEach(function (b) { b.onclick = function () { period = b.getAttribute('data-p'); dashboard(); }; });

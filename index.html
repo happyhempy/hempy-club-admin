@@ -7,6 +7,17 @@
 <title>מועדון החברים – ניהול</title>
 <!-- Hempy Club owner screen, embedded in Shopify admin (Apps → Hempy Club). Contains no data or secrets:
      everything is loaded from the club-admin API, which only answers with a valid Shopify session token. -->
+<script>
+  // Diagnostics: tell the server the page started loading (before App Bridge).
+  (function () {
+    var q = new URLSearchParams(location.search);
+    var info = 'host=' + q.has('host') + ' embedded=' + q.get('embedded') + ' top=' + (window.top === window);
+    try { navigator.sendBeacon('https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin?action=ping&stage=start&info=' + encodeURIComponent(info)); } catch (e) {}
+    window.hcPing = function (stage, extra) {
+      try { navigator.sendBeacon('https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin?action=ping&stage=' + stage + '&info=' + encodeURIComponent(extra || '')); } catch (e) {}
+    };
+  })();
+</script>
 <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 <style>
   :root { --green: #47792b; --green-d: #34591f; --soft: #e4ecdc; --beige: #cbb896; --cream: #f6f6f1; --ink: #2f2e2b; --line: #e3e1da; --muted: #6b6a66; --red: #a4561e; }
@@ -92,6 +103,7 @@
 <script>
   // Show any startup error on screen (helps when the page is opened from the Shopify mobile app).
   function hcShowError(msg) {
+    if (window.hcPing) hcPing('error', String(msg).slice(0, 250));
     var v = document.getElementById('view');
     if (v) v.innerHTML = '<div class="card"><b>המסך לא נטען</b><p class="err" dir="ltr" style="text-align:left;word-break:break-word">' +
       String(msg).replace(/[<>&]/g, '') + '</p><p class="muted">צלמו את המסך ושלחו לקלוד.</p></div>';
@@ -124,6 +136,7 @@
   async function api(action, params, body) {
     if (typeof shopify === 'undefined' || !shopify.idToken) throw new Error('App Bridge not available (shopify=' + typeof shopify + ')');
     var token = await shopify.idToken();
+    if (!window.hcTokenOk && window.hcPing) { window.hcTokenOk = true; hcPing('token-ok'); }
     var qs = new URLSearchParams(Object.assign({ action: action }, params || {})).toString();
     var r = await fetch(API + '?' + qs, {
       method: body ? 'POST' : 'GET',

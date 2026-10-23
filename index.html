@@ -56,6 +56,29 @@
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .rules li { margin-bottom: 4px; }
 
+  /* program */
+  .tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .tpl { text-align: right; background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 14px; font: inherit; cursor: pointer; }
+  .tpl b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .tpl span { color: var(--muted); font-size: 13px; }
+  .tpl[aria-pressed="true"] { border-color: var(--green); background: var(--soft); }
+  .pf { display: grid; gap: 12px; margin-top: 16px; }
+  .pf h3 { margin: 0 0 4px; font-size: 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pf .hint { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  .pf .fields { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; }
+  .pf label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  .pf label.f input, .pf label.f select { width: 120px; color: var(--ink); }
+  .pf label.f input.wide { width: 160px; }
+  .pf .tg { font-weight: 600; font-size: 13px; color: var(--ink); white-space: nowrap; }
+  .pf .off { opacity: .45; pointer-events: none; }
+  .pf .tierrow { display: grid; grid-template-columns: 70px repeat(5, minmax(90px, 1fr)); gap: 8px; align-items: center; margin-bottom: 6px; }
+  .pf .tierrow input { width: 100%; }
+  .pf .tierrow.head { font-size: 12px; color: var(--muted); }
+  .preview { background: var(--soft); border-color: transparent; }
+  .preview li { margin-bottom: 3px; }
+  .savebar { position: sticky; bottom: 0; background: var(--cream); padding: 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 16px; }
+  @media (max-width: 700px) { .pf .tierrow { grid-template-columns: 60px repeat(5, 1fr); font-size: 12px; } }
+
   /* connections */
   .conn { display: grid; gap: 12px; }
   .conn__head { display: flex; align-items: center; gap: 12px; }
@@ -119,6 +142,7 @@
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="dashboard" aria-selected="true">לוח בקרה</button>
     <button class="tab" role="tab" data-tab="members" aria-selected="false">חברים</button>
+    <button class="tab" role="tab" data-tab="program" aria-selected="false">תוכנית</button>
     <button class="tab" role="tab" data-tab="connections" aria-selected="false">חיבורים</button>
     <button class="tab" role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
   </div>
@@ -390,7 +414,7 @@
     view.innerHTML =
       '<div class="card switch"><div><b>פרסום אוטומטי בטלגרם</b><div class="muted">כשמוצר שאזל חוזר למלאי, הבוט מפרסם בערוץ t.me/happyhempy (פוסט אחד למוצר ביום).</div></div>' +
       '<label><input type="checkbox" data-tg ' + (s.telegram_restock === true ? 'checked' : '') + '> ' + (s.telegram_restock === true ? 'פעיל' : 'כבוי') + '</label></div>' +
-      '<h2>כללי המועדון</h2><div class="card"><ul class="rules">' +
+      '<h2>כללי המועדון</h2><div class="card"><p class="muted">הכללים נקבעים בלשונית <b>תוכנית</b>.</p><ul class="rules" style="display:none">' +
         '<li>מתנת הצטרפות: <b>20 ₪</b>, זמינה מיד, בתוקף 60 יום מההצטרפות.</li>' +
         '<li>צבירה: ארד 5 ₪ · כסף 7 ₪ · זהב 10 ₪ על כל 100 ₪. קנייה שנייה תוך 60 יום: כפול.</li>' +
         '<li>דרגות: כסף מ-5 קניות או 400 ₪ בשנה · זהב מ-8 קניות או 700 ₪ בשנה.</li>' +
@@ -410,6 +434,128 @@
       if (!res.ok) { shopify.toast.show('שגיאה', { isError: true }); tg.checked = !want; return; }
       shopify.toast.show(want ? 'הפרסום בטלגרם הופעל' : 'הפרסום בטלגרם כובה');
       settings();
+    };
+  }
+
+  // ---------- program (points / tiers / rewards) ----------
+  var prog = null, progSaved = null, progTemplates = [];
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  async function programView() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('program');
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    progTemplates = r.templates || [];
+    prog = clone(r.program); progSaved = clone(r.program);
+    renderProgram();
+  }
+  function get(path) { var v = prog; path.split('.').forEach(function (k) { v = v == null ? v : v[k]; }); return v; }
+  function setv(path, val) { var ks = path.split('.'), o = prog; ks.slice(0, -1).forEach(function (k) { o = o[k] = o[k] || {}; }); o[ks[ks.length - 1]] = val; }
+  function u(n) { return prog.currency.mode === 'cashback' ? num(n) + ' ₪' : num(n) + ' ' + esc(prog.currency.name); }
+  function inp(path, label, opts) {
+    opts = opts || {};
+    return '<label class="f">' + label + '<input type="number" ' + (opts.step ? 'step="' + opts.step + '"' : 'step="1"') + ' min="' + (opts.min == null ? 0 : opts.min) + '" data-p="' + path + '" value="' + esc(get(path)) + '"' + (opts.cls ? ' class="' + opts.cls + '"' : '') + '></label>';
+  }
+  function txt(path, label) { return '<label class="f">' + label + '<input class="wide" type="text" maxlength="15" data-p="' + path + '" data-t="text" value="' + esc(get(path)) + '"></label>'; }
+  function tog(path, label) { return '<label class="tg"><input type="checkbox" data-p="' + path + '" data-t="bool" ' + (get(path) ? 'checked' : '') + '> ' + label + '</label>'; }
+  function section(title, hint, body, togglePath) {
+    return '<div class="card"><h3>' + title + (togglePath ? tog(togglePath, 'פעיל') : '') + '</h3>' + (hint ? '<p class="hint">' + hint + '</p>' : '') +
+      '<div class="' + (togglePath && !get(togglePath) ? 'off' : '') + '">' + body + '</div></div>';
+  }
+  function previewList() {
+    var p = prog, T = p.tiers.names, out = [];
+    var val = p.currency.mode === 'cashback' ? 'כל נקודה = 1 ₪' : Math.round(1 / p.currency.point_value) + ' ' + esc(p.currency.name) + ' = 1 ₪';
+    out.push('<li><b>מטבע:</b> ' + val + '</li>');
+    var pct = function (t) { return Math.round(p.earn.per_100[t] * p.currency.point_value * 10) / 10; };
+    out.push('<li><b>על כל 100 ₪:</b> ' + (p.tiers.enabled
+      ? esc(T.bronze) + ' ' + u(p.earn.per_100.bronze) + ' · ' + esc(T.silver) + ' ' + u(p.earn.per_100.silver) + ' · ' + esc(T.gold) + ' ' + u(p.earn.per_100.gold) +
+        ' <span class="muted">(' + pct('bronze') + '%–' + pct('gold') + '% חוזר ללקוח)</span>'
+      : u(p.earn.per_100.bronze) + ' <span class="muted">(' + pct('bronze') + '% חוזר ללקוח)</span>') + '</li>');
+    if (p.join_gift.amount) out.push('<li><b>מתנת הצטרפות:</b> ' + u(p.join_gift.amount) + (p.join_gift.valid_days ? ' לתוקף ' + p.join_gift.valid_days + ' יום' : ' בלי תוקף') + '</li>');
+    if (p.second_order.enabled) out.push('<li><b>קנייה שנייה</b> תוך ' + p.second_order.days + ' יום: פי ' + p.second_order.multiplier + '</li>');
+    out.push('<li><b>מימוש:</b> מ-' + u(p.redeem.min_points) + ', עד ' + p.redeem.max_share + '% מההזמנה, קוד בתוקף ' + p.redeem.code_days + ' יום</li>');
+    if (p.tiers.enabled) {
+      var when = function (t) { return [p.tiers[t].orders ? p.tiers[t].orders + ' קניות' : '', p.tiers[t].amount ? p.tiers[t].amount + ' ₪' : ''].filter(Boolean).join(' או '); };
+      out.push('<li><b>דרגות</b> (12 חודשים אחרונים): ' + esc(T.silver) + ' מ-' + when('silver') + ' · ' + esc(T.gold) + ' מ-' + when('gold') + '</li>');
+    } else out.push('<li><b>בלי דרגות</b></li>');
+    if (p.birthday.enabled) out.push('<li><b>יום הולדת:</b> ' + (p.tiers.enabled ? p.birthday.percent.bronze + '% / ' + p.birthday.percent.silver + '% / ' + p.birthday.percent.gold + '%' : p.birthday.percent.bronze + '%') + ' הנחה</li>');
+    if (p.referral.enabled) out.push('<li><b>חבר מביא חבר:</b> החבר מקבל ' + u(p.join_gift.amount + p.referral.friend_bonus) + ', המזמין ' + u(p.referral.referrer_reward) + (p.referral.min_order ? ' (בקנייה מעל ' + p.referral.min_order + ' ₪)' : '') + '</li>');
+    if (p.instagram.enabled) out.push('<li><b>אינסטגרם:</b> ' + u(p.instagram.amount) + ' פעם אחת</li>');
+    out.push('<li><b>תפוגה:</b> ' + (p.expiry.months ? 'אחרי ' + p.expiry.months + ' חודשים בלי קנייה' : 'לא פגות') + '</li>');
+    return '<ul class="rules">' + out.join('') + '</ul>';
+  }
+  function tierTable() {
+    var p = prog, rows = '<div class="tierrow head"><span></span><span>שם</span><span>על כל 100 ₪</span><span>תנאי: קניות בשנה</span><span>תנאי: ₪ בשנה</span><span>מתנת עלייה</span></div>';
+    ['bronze', 'silver', 'gold'].forEach(function (t) {
+      rows += '<div class="tierrow"><b>' + { bronze: '🥉', silver: '🥈', gold: '🥇' }[t] + '</b>' +
+        '<input type="text" maxlength="15" data-p="tiers.names.' + t + '" data-t="text" value="' + esc(p.tiers.names[t]) + '">' +
+        '<input type="number" min="0" step="any" data-p="earn.per_100.' + t + '" value="' + esc(p.earn.per_100[t]) + '">' +
+        (t === 'bronze' ? '<span class="muted">מההצטרפות</span><span></span><span></span>'
+          : '<input type="number" min="0" data-p="tiers.' + t + '.orders" value="' + esc(p.tiers[t].orders) + '">' +
+            '<input type="number" min="0" data-p="tiers.' + t + '.amount" value="' + esc(p.tiers[t].amount) + '">' +
+            '<input type="number" min="0" data-p="tiers.' + t + '.bonus" value="' + esc(p.tiers[t].bonus) + '">') + '</div>';
+    });
+    return rows + '<p class="hint" style="margin-top:8px">מספיק לעמוד באחד התנאים. 0 = התנאי לא בשימוש. נבדק על 12 החודשים האחרונים, ומי שלא עומד בתנאי שנה שלמה יורד דרגה.</p>' +
+      '<div class="fields"><span class="muted">משלוח חינם מעל (₪, 0 = בלי):</span>' + inp('tiers.free_shipping.silver', esc(p.tiers.names.silver)) + inp('tiers.free_shipping.gold', esc(p.tiers.names.gold)) +
+      inp('tiers.free_shipping.bronze', esc(p.tiers.names.bronze) + ' (תצוגה בלבד)') + '</div>';
+  }
+  function renderProgram() {
+    var p = prog, pts = p.currency.mode === 'points';
+    var dirty = JSON.stringify(prog) !== JSON.stringify(progSaved);
+    view.innerHTML =
+      '<p class="muted" style="margin-top:0">בוחרים איך הלקוחות צוברים, מממשים ועולים בדרגות. אפשר להתחיל מתבנית מוכנה ולשנות כל מספר. השינוי נכנס לתוקף מהשמירה ומעדכן גם את דף המועדון והתקנון באתר.</p>' +
+      '<h2>תבנית מוכנה</h2><div class="tpls">' + progTemplates.map(function (t) {
+        return '<button class="tpl" data-tpl="' + t.id + '" aria-pressed="' + (p.template === t.id) + '"><b>' + esc(t.title) + '</b><span>' + esc(t.about) + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="pf">' +
+      '<div class="card preview"><h3>כך הלקוח יראה את המועדון</h3>' + previewList() + '</div>' +
+      section('מטבע המועדון', 'קאשבק: הלקוח רואה שקלים (כמו Rivo "Store credit"). נקודות: הלקוח רואה נקודות, כמו ב-Smile.',
+        '<div class="fields"><label class="f">סוג<select data-p="currency.mode" data-t="text"><option value="cashback"' + (pts ? '' : ' selected') + '>קאשבק בשקלים</option><option value="points"' + (pts ? ' selected' : '') + '>נקודות</option></select></label>' +
+        (pts ? txt('currency.name', 'שם הנקודות') + '<label class="f">כמה נקודות = 1 ₪<input type="number" min="1" step="1" data-p="currency.per_shekel" data-t="perShekel" value="' + Math.round(1 / p.currency.point_value) + '"></label>' : '') + '</div>') +
+      section('צבירה ודרגות', 'כמה ' + (pts ? esc(p.currency.name) : '₪') + ' מקבלים על כל 100 ₪ קנייה (אחרי הנחות, בלי משלוח), ומתי עולים דרגה.', tierTable(), 'tiers.enabled') +
+      section('מתנת הצטרפות', 'ניתנת מיד בהצטרפות. 0 ימים = בלי תאריך תפוגה משלה.', '<div class="fields">' + inp('join_gift.amount', 'סכום') + inp('join_gift.valid_days', 'תוקף בימים') + '</div>') +
+      section('בונוס קנייה שנייה', 'מעודד לקוח חדש לחזור (הקנייה השנייה היא הקשה ביותר).', '<div class="fields">' + inp('second_order.days', 'תוך כמה ימים', { min: 1 }) + inp('second_order.multiplier', 'פי כמה', { min: 1, step: 0.5 }) + '</div>', 'second_order.enabled') +
+      section('מימוש', 'המימוש בעגלה, לא בשילוב קופון נוסף.', '<div class="fields">' + inp('redeem.min_points', 'מינימום למימוש', { min: 1 }) + inp('redeem.max_share', 'עד % מההזמנה', { min: 5 }) + inp('redeem.code_days', 'תוקף קוד (ימים)', { min: 1 }) + '</div>') +
+      section('יום הולדת', 'הנחה באחוזים על קנייה אחת בחודש יום ההולדת.', '<div class="fields">' + inp('birthday.percent.bronze', esc(p.tiers.names.bronze) + ' %', { min: 1 }) +
+        (p.tiers.enabled ? inp('birthday.percent.silver', esc(p.tiers.names.silver) + ' %', { min: 1 }) + inp('birthday.percent.gold', esc(p.tiers.names.gold) + ' %', { min: 1 }) : '') + '</div>', 'birthday.enabled') +
+      section('חבר מביא חבר', 'החבר החדש מקבל בונוס על מתנת ההצטרפות, והמזמין מקבל כשהחבר קונה.', '<div class="fields">' + inp('referral.friend_bonus', 'בונוס לחבר') + inp('referral.referrer_reward', 'למזמין') + inp('referral.min_order', 'קנייה מינימלית (₪)') + '</div>', 'referral.enabled') +
+      section('מעקב באינסטגרם', 'פעם אחת לכל חבר, לפי הלחיצה (כמו ב-Smile).', '<div class="fields">' + inp('instagram.amount', 'סכום') + '</div>', 'instagram.enabled') +
+      section('תפוגה', 'כמו ב-Smile ו-LoyaltyLion: הנקודות פגות אחרי תקופה בלי קנייה. 0 = לא פגות.', '<div class="fields">' + inp('expiry.months', 'חודשים בלי קנייה') + '</div>') +
+      '</div>' +
+      '<div class="savebar"><button class="primary" data-save ' + (dirty ? '' : 'disabled') + '>שמירת התוכנית</button>' +
+      (dirty ? '<button class="link" data-reset>ביטול השינויים</button><span class="muted">יש שינויים שלא נשמרו</span>' : '<span class="muted">התוכנית שמורה ופעילה</span>') + '</div>';
+
+    view.querySelectorAll('[data-tpl]').forEach(function (b) {
+      b.onclick = function () {
+        var t = progTemplates.find(function (x) { return x.id === b.getAttribute('data-tpl'); });
+        if (!t) return;
+        prog = clone(t.program);
+        renderProgram();
+        shopify.toast.show('התבנית נטענה. בדקו את המספרים ושמרו');
+      };
+    });
+    view.querySelectorAll('[data-p]').forEach(function (el) {
+      el.onchange = function () {
+        var path = el.getAttribute('data-p'), t = el.getAttribute('data-t');
+        if (t === 'bool') setv(path, el.checked);
+        else if (t === 'text') setv(path, el.value);
+        else if (t === 'perShekel') setv('currency.point_value', 1 / Math.max(1, Number(el.value) || 1));
+        else setv(path, Number(el.value));
+        if (path === 'currency.mode') setv('currency.point_value', el.value === 'cashback' ? 1 : (prog.currency.point_value === 1 ? 0.05 : prog.currency.point_value));
+        prog.template = 'custom';
+        var y = window.scrollY; renderProgram(); window.scrollTo(0, y);
+      };
+    });
+    var reset = view.querySelector('[data-reset]');
+    if (reset) reset.onclick = function () { prog = clone(progSaved); renderProgram(); };
+    var save = view.querySelector('[data-save]');
+    save.onclick = async function () {
+      if (!confirm('לשמור את התוכנית?\n\nהשינוי חל מיד על כל החברים, ודף המועדון והתקנון באתר יתעדכנו.\nלפי התקנון, על שינוי תנאים צריך להודיע לחברים 30 יום מראש. נקודות שכבר נצברו נשמרות.')) return;
+      save.disabled = true; save.textContent = 'שומר…';
+      var r = await api('program', {}, { program: prog });
+      if (!r.ok) { save.disabled = false; save.textContent = 'שמירת התוכנית'; shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
+      prog = clone(r.program); progSaved = clone(r.program);
+      shopify.toast.show('התוכנית נשמרה' + (r.warnings && r.warnings.length ? ' (' + r.warnings.join(', ') + ')' : ''), r.warnings && r.warnings.length ? { isError: true } : undefined);
+      renderProgram();
     };
   }
 
@@ -503,6 +649,7 @@
     if (tab === 'dashboard') dashboard();
     else if (tab === 'members') membersView('');
     else if (tab === 'connections') connections();
+    else if (tab === 'program') programView();
     else settings();
   }
   document.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { select(b.getAttribute('data-tab')); }; });

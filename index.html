@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="shopify-api-key" content="9f826a8f9f50e1e875512d53728ab7d6">
+<title>מועדון החברים – ניהול</title>
+<!-- Hempy Club owner screen, embedded in Shopify admin (Apps → Hempy Club). Contains no data or secrets:
+     everything is loaded from the club-admin API, which only answers with a valid Shopify session token. -->
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+<style>
+  :root { --green: #47792b; --green-d: #34591f; --soft: #e4ecdc; --beige: #cbb896; --cream: #f6f6f1; --ink: #2f2e2b; --line: #e3e1da; --muted: #6b6a66; --red: #a4561e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--line); background: #fff; padding: 8px 16px; border-radius: 99px; font: inherit; font-weight: 600; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .k { color: var(--muted); font-size: 13px; }
+  .v { font-size: 28px; font-weight: 800; line-height: 1.2; margin-top: 4px; }
+  .v small { font-size: 14px; font-weight: 600; color: var(--muted); }
+  .hl { background: var(--soft); border-color: transparent; }
+  h2 { font-size: 16px; margin: 24px 0 10px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #faf9f6; font-size: 12px; color: var(--muted); font-weight: 700; }
+  tr.row { cursor: pointer; } tr.row:hover td { background: #faf9f6; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: var(--soft); }
+  .pill.bronze { background: #f4e6dc; color: #8a5330; } .pill.silver { background: #e9eef1; color: #55636b; } .pill.gold { background: #f6efd6; color: #8a6c12; }
+  .pill.wait { background: #eee; color: var(--muted); }
+  input, select { font: inherit; padding: 9px 12px; border: 1px solid #cfccc3; border-radius: 8px; background: #fff; }
+  .search { width: 100%; max-width: 420px; }
+  button.primary { background: var(--green); color: #fff; border: 0; padding: 9px 18px; border-radius: 8px; font: inherit; font-weight: 700; cursor: pointer; }
+  button.primary:disabled { opacity: .5; }
+  button.link { background: none; border: 0; color: var(--green-d); font: inherit; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
+  .plus { color: var(--green); font-weight: 700; } .minus { color: var(--red); font-weight: 700; }
+  .bars { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding: 12px; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+  .bar { flex: 1; background: var(--green); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
+  .bar span { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--muted); }
+  .muted { color: var(--muted); } .err { color: var(--red); }
+  .detail { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .rules li { margin-bottom: 4px; }
+  @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } .v { font-size: 22px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="dashboard" aria-selected="true">לוח בקרה</button>
+    <button class="tab" role="tab" data-tab="members" aria-selected="false">חברים</button>
+    <button class="tab" role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
+  </div>
+  <main id="view"><p class="muted">טוען…</p></main>
+</div>
+<script>
+(function () {
+  var API = 'https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin';
+  var STORE = 'https://admin.shopify.com/store/happy-hempy';
+  var TIER = { bronze: 'ארד', silver: 'כסף', gold: 'זהב' };
+  var REASON = { join_bonus: 'מתנת הצטרפות', order_earn: 'קנייה', second_order_bonus: 'בונוס קנייה שנייה', tier_upgrade_bonus: 'מתנת דרגה',
+    refund: 'החזרה', cancel: 'ביטול', redemption: 'מימוש', redemption_restored: 'קוד שלא נוצל', expiry: 'פג תוקף', manual_adjust: 'עדכון ידני',
+    profile_bonus: 'השלמת פרופיל', review: 'ביקורת', referral: 'חבר מביא חבר', instagram: 'אינסטגרם' };
+  var view = document.getElementById('view');
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function nis(n) { return Math.round(Number(n) || 0).toLocaleString('he-IL') + ' ₪'; }
+  function num(n) { return (Number(n) || 0).toLocaleString('he-IL'); }
+  function day(d) { return d ? new Date(d).toLocaleDateString('he-IL') : '—'; }
+  function tierPill(t, joined) { return joined === false ? '<span class="pill wait">עוד לא הצטרף/ה</span>' : '<span class="pill ' + esc(t) + '">' + esc(TIER[t] || t) + '</span>'; }
+
+  async function api(action, params, body) {
+    var token = await shopify.idToken();
+    var qs = new URLSearchParams(Object.assign({ action: action }, params || {})).toString();
+    var r = await fetch(API + '?' + qs, {
+      method: body ? 'POST' : 'GET',
+      headers: Object.assign({ Authorization: 'Bearer ' + token }, body ? { 'Content-Type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined
+    });
+    var j = await r.json().catch(function () { return { ok: false, message: 'שגיאה' }; });
+    if (!r.ok && !j.message) j.message = 'שגיאה ' + r.status;
+    return j;
+  }
+
+  function card(k, v, sub, cls) { return '<div class="card ' + (cls || '') + '"><div class="k">' + k + '</div><div class="v">' + v + (sub ? ' <small>' + sub + '</small>' : '') + '</div></div>'; }
+
+  // ---------- dashboard ----------
+  async function dashboard() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('dashboard');
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    var d = r.dashboard;
+    var t = d.tiers || {};
+    var days = d.daily_joins || [];
+    var max = Math.max.apply(null, days.map(function (x) { return x.n; }).concat([1]));
+    view.innerHTML =
+      '<div class="grid">' +
+        card('חברי מועדון', num(d.members_joined), '', 'hl') +
+        card('הצטרפו היום', num(d.joined_today)) +
+        card('הצטרפו ב-7 ימים', num(d.joined_7d)) +
+        card('קנו ועוד לא הצטרפו', num(d.pending_buyers), 'עם נקודות שמחכות') +
+      '</div>' +
+      '<h2>כסף</h2><div class="grid">' +
+        card('נקודות שמומשו', nis(d.redeemed_total), num(d.redemptions_used) + ' הזמנות', 'hl') +
+        card('מומשו ב-30 יום', nis(d.redeemed_30d)) +
+        card('יתרות של חברים', nis(d.balance_members), 'אפשר לממש') +
+        card('יתרות שמחכות', nis(d.balance_pending), 'למי שעוד לא הצטרף') +
+      '</div>' +
+      '<h2>מה החברים קנו מאז שהצטרפו</h2><div class="grid">' +
+        card('הזמנות של חברים', num(d.member_orders_since_launch), '', 'hl') +
+        card('הכנסה מהזמנות חברים', nis(d.member_revenue_since_launch), 'לפני משלוח') +
+        card('חברים שקנו', num(d.members_bought_after_join), d.members_joined ? 'מתוך ' + num(d.members_joined) : '') +
+        card('דרגות', num(t.bronze || 0) + ' / ' + num(t.silver || 0) + ' / ' + num(t.gold || 0), 'ארד / כסף / זהב') +
+      '</div>' +
+      '<h2>הצטרפויות ב-30 הימים האחרונים</h2>' +
+      (days.length
+        ? '<div class="bars">' + days.map(function (x) { return '<div class="bar" title="' + esc(day(x.day)) + ': ' + x.n + '" style="height:' + Math.round((x.n / max) * 100) + '%"><span>' + x.n + '</span></div>'; }).join('') + '</div>'
+        : '<p class="muted">עוד אין הצטרפויות.</p>') +
+      '<h2>הצטרפו לאחרונה</h2>' +
+      ((d.recent_joins || []).length
+        ? '<table><thead><tr><th>שם</th><th>מייל</th><th>הצטרפות</th><th>דרגה</th><th>יתרה</th></tr></thead><tbody>' +
+          d.recent_joins.map(function (m) {
+            return '<tr class="row" data-id="' + esc(m.id) + '"><td>' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</td><td>' + esc(m.email || '') +
+              '</td><td>' + day(m.joined_at) + '</td><td>' + tierPill(m.tier) + '</td><td>' + nis(m.balance) + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted">עוד אין חברים.</p>');
+    bindRows();
+  }
+
+  // ---------- members ----------
+  var searchTimer;
+  function membersView(q) {
+    view.innerHTML = '<input class="search" type="search" placeholder="חיפוש לפי שם, מייל או טלפון" value="' + esc(q || '') + '" autofocus>' +
+      '<p class="muted" style="margin:8px 0 12px">בלי חיפוש מוצגים חברי המועדון האחרונים. החיפוש כולל גם קונים שעוד לא הצטרפו.</p><div id="list"></div>';
+    var input = view.querySelector('input');
+    input.addEventListener('input', function () { clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadMembers(input.value); }, 300); });
+    loadMembers(q || '');
+  }
+  async function loadMembers(q) {
+    var list = document.getElementById('list');
+    list.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('members', { q: q });
+    if (!r.ok) { list.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    if (!r.members.length) { list.innerHTML = '<p class="muted">לא נמצאו תוצאות.</p>'; return; }
+    list.innerHTML = '<table><thead><tr><th>שם</th><th>מייל</th><th>טלפון</th><th>סטטוס</th><th>יתרה</th><th>קנייה אחרונה</th></tr></thead><tbody>' +
+      r.members.map(function (m) {
+        return '<tr class="row" data-id="' + esc(m.id) + '"><td>' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</td><td>' + esc(m.email || '') +
+          '</td><td dir="ltr" style="text-align:right">' + esc(m.phone || '') + '</td><td>' + tierPill(m.tier, m.joined) + '</td><td>' + nis(m.balance) + '</td><td>' + day(m.last_order_at) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    bindRows();
+  }
+  function bindRows() {
+    view.querySelectorAll('tr.row').forEach(function (tr) { tr.onclick = function () { memberDetail(tr.getAttribute('data-id')); }; });
+  }
+
+  async function memberDetail(id) {
+    select('members', true);
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('member', { id: id });
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    var m = r.member;
+    var gender = { female: 'נקבה', male: 'זכר', other: 'אחר' }[m.gender] || '—';
+    view.innerHTML =
+      '<p><button class="link" data-back>→ חזרה לרשימה</button></p>' +
+      '<div class="detail">' +
+        '<div class="card"><div class="k">' + tierPill(m.tier, m.joined) + '</div>' +
+          '<div class="v">' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</div>' +
+          '<p>' + esc(m.email || '') + (m.phone ? ' · <span dir="ltr">' + esc(m.phone) + '</span>' : '') + '</p>' +
+          '<p class="muted">עיר: ' + esc(m.region || '—') + ' · מגדר: ' + gender + ' · תאריך לידה: ' + day(m.birthday) + '</p>' +
+          '<p class="muted">הצטרפות: ' + day(m.joined_at) + ' · קנייה אחרונה: ' + day(m.last_order_at) + '</p>' +
+          '<p><a href="' + STORE + '/customers/' + esc(m.shopify_customer_id) + '" target="_top">לכרטיס הלקוח ב-Shopify</a></p></div>' +
+        '<div class="card hl"><div class="k">יתרה</div><div class="v">' + nis(r.balance) + '</div>' +
+          '<div class="row-form"><select data-sign><option value="1">הוספה</option><option value="-1">הורדה</option></select>' +
+          '<input type="number" min="1" max="1000" placeholder="סכום ₪" style="width:110px" data-amount>' +
+          '<input type="text" maxlength="120" placeholder="סיבה (למשל: פיצוי על עיכוב)" style="flex:1;min-width:180px" data-note>' +
+          '<button class="primary" data-adjust>שמירה</button></div><p data-out class="muted"></p></div>' +
+      '</div>' +
+      '<h2>תנועות נקודות</h2>' +
+      (r.ledger.length
+        ? '<table><thead><tr><th>תאריך</th><th>סוג</th><th>פרטים</th><th>₪</th></tr></thead><tbody>' +
+          r.ledger.map(function (l) {
+            return '<tr><td>' + day(l.created_at) + '</td><td>' + esc(REASON[l.reason] || l.reason) + '</td><td>' + esc(l.note || '') +
+              '</td><td class="' + (l.delta > 0 ? 'plus' : 'minus') + '">' + (l.delta > 0 ? '+' : '') + l.delta + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted">אין תנועות.</p>') +
+      '<h2>הזמנות</h2>' +
+      (r.orders.length
+        ? '<table><thead><tr><th>הזמנה</th><th>תאריך</th><th>סכום</th><th>נקודות</th><th>סטטוס</th></tr></thead><tbody>' +
+          r.orders.map(function (o) {
+            var st = { paid: 'שולמה', refunded: 'הוחזרה', cancelled: 'בוטלה' }[o.status] || o.status;
+            return '<tr><td>' + esc(o.order_name || '') + '</td><td>' + day(o.paid_at) + '</td><td>' + nis(o.eligible_amount - o.refunded_amount) + '</td><td>' + o.points_awarded + '</td><td>' + st + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted">אין הזמנות.</p>');
+    view.querySelector('[data-back]').onclick = function () { membersView(''); };
+    var btn = view.querySelector('[data-adjust]');
+    btn.onclick = async function () {
+      var out = view.querySelector('[data-out]');
+      var amount = Math.trunc(Number(view.querySelector('[data-amount]').value));
+      var delta = amount * Number(view.querySelector('[data-sign]').value);
+      var note = view.querySelector('[data-note]').value.trim();
+      if (!amount || amount < 1) { out.textContent = 'נא לכתוב סכום'; return; }
+      if (!note) { out.textContent = 'נא לכתוב סיבה'; return; }
+      if (!confirm((delta > 0 ? 'להוסיף ' : 'להוריד ') + Math.abs(delta) + ' ₪ ל' + ((m.first_name || '') + ' ' + (m.last_name || '')).trim() + '?')) return;
+      btn.disabled = true;
+      var res = await api('adjust', {}, { member_id: m.id, delta: delta, note: note });
+      btn.disabled = false;
+      if (!res.ok) { out.textContent = res.message || 'שגיאה'; return; }
+      shopify.toast.show('היתרה עודכנה');
+      memberDetail(m.id);
+    };
+  }
+
+  // ---------- settings ----------
+  async function settings() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('settings');
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    var s = r.settings || {};
+    view.innerHTML =
+      '<div class="card switch"><div><b>פרסום אוטומטי בטלגרם</b><div class="muted">כשמוצר שאזל חוזר למלאי, הבוט מפרסם בערוץ t.me/happyhempy (פוסט אחד למוצר ביום).</div></div>' +
+      '<label><input type="checkbox" data-tg ' + (s.telegram_restock === true ? 'checked' : '') + '> ' + (s.telegram_restock === true ? 'פעיל' : 'כבוי') + '</label></div>' +
+      '<h2>כללי המועדון</h2><div class="card"><ul class="rules">' +
+        '<li>מתנת הצטרפות: <b>20 ₪</b>, זמינה מיד, בתוקף 60 יום מההצטרפות.</li>' +
+        '<li>צבירה: ארד 5 ₪ · כסף 7 ₪ · זהב 10 ₪ על כל 100 ₪. קנייה שנייה תוך 60 יום: כפול.</li>' +
+        '<li>דרגות: כסף מ-5 קניות או 400 ₪ בשנה · זהב מ-8 קניות או 700 ₪ בשנה.</li>' +
+        '<li>מימוש: מ-5 ₪, עד 30% מההזמנה, לא יחד עם קופון. נקודות פגות אחרי 18 חודשים בלי קנייה.</li>' +
+        '<li>משלוח חינם: כולם מעל 230 ₪ · כסף מעל 150 ₪ · זהב מעל 100 ₪.</li>' +
+        '<li>יום הולדת: 10% / 15% / 20% פעם בשנה, בחודש יום ההולדת.</li>' +
+      '</ul><p class="muted">לשינוי הכללים פונים לקלוד.</p></div>' +
+      '<h2>קישורים</h2><div class="card"><p><a href="https://www.happy-hempy.com/pages/hempy-club" target="_blank">דף המועדון באתר</a> · ' +
+      '<a href="https://www.happy-hempy.com/pages/hempy-club-terms" target="_blank">התקנון</a> · ' +
+      '<a href="https://supabase.com/dashboard/project/xblhodzcowleloqsveun/editor" target="_blank">כל הנתונים ב-Supabase</a></p>' +
+      (s.test_mode === true ? '<p class="err">שימו לב: מצב בדיקה פעיל.</p>' : '') + '</div>';
+    var tg = view.querySelector('[data-tg]');
+    tg.onchange = async function () {
+      var want = tg.checked;
+      if (!confirm(want ? 'להפעיל פרסום אוטומטי של חידושי מלאי בערוץ הטלגרם?' : 'לכבות את הפרסום האוטומטי בטלגרם?')) { tg.checked = !want; return; }
+      var res = await api('settings', {}, { telegram_restock: want });
+      if (!res.ok) { shopify.toast.show('שגיאה', { isError: true }); tg.checked = !want; return; }
+      shopify.toast.show(want ? 'הפרסום בטלגרם הופעל' : 'הפרסום בטלגרם כובה');
+      settings();
+    };
+  }
+
+  // ---------- tabs ----------
+  function select(tab, silent) {
+    document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === tab)); });
+    if (silent) return;
+    if (tab === 'dashboard') dashboard();
+    else if (tab === 'members') membersView('');
+    else settings();
+  }
+  document.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { select(b.getAttribute('data-tab')); }; });
+  dashboard();
+})();
+</script>
+</body>
+</html>

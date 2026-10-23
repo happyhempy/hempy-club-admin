@@ -90,6 +90,22 @@
   <main id="view"><p class="muted">טוען…</p></main>
 </div>
 <script>
+  // Show any startup error on screen (helps when the page is opened from the Shopify mobile app).
+  function hcShowError(msg) {
+    var v = document.getElementById('view');
+    if (v) v.innerHTML = '<div class="card"><b>המסך לא נטען</b><p class="err" dir="ltr" style="text-align:left;word-break:break-word">' +
+      String(msg).replace(/[<>&]/g, '') + '</p><p class="muted">צלמו את המסך ושלחו לקלוד.</p></div>';
+  }
+  window.addEventListener('error', function (e) { hcShowError(e.message || e); });
+  window.addEventListener('unhandledrejection', function (e) { hcShowError((e.reason && (e.reason.message || e.reason)) || 'unknown'); });
+  setTimeout(function () {
+    var v = document.getElementById('view');
+    if (v && /טוען/.test(v.textContent) && !v.querySelector('.kpi:not(.skel)')) {
+      hcShowError('timeout · shopify=' + (typeof shopify) + ' · ua=' + navigator.userAgent.slice(0, 80) + ' · host=' + (new URLSearchParams(location.search).has('host')));
+    }
+  }, 15000);
+</script>
+<script>
 (function () {
   var API = 'https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin';
   var STORE = 'https://admin.shopify.com/store/happy-hempy';
@@ -106,6 +122,7 @@
   function tierPill(t, joined) { return joined === false ? '<span class="pill wait">עוד לא הצטרף/ה</span>' : '<span class="pill ' + esc(t) + '">' + esc(TIER[t] || t) + '</span>'; }
 
   async function api(action, params, body) {
+    if (typeof shopify === 'undefined' || !shopify.idToken) throw new Error('App Bridge not available (shopify=' + typeof shopify + ')');
     var token = await shopify.idToken();
     var qs = new URLSearchParams(Object.assign({ action: action }, params || {})).toString();
     var r = await fetch(API + '?' + qs, {

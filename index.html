@@ -56,6 +56,21 @@
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .rules li { margin-bottom: 4px; }
 
+  /* connections */
+  .conn { display: grid; gap: 12px; }
+  .conn__head { display: flex; align-items: center; gap: 12px; }
+  .conn__logo { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; flex-shrink: 0; }
+  .conn__title { flex: 1; min-width: 0; }
+  .conn__title b { font-size: 15px; }
+  .conn .status { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: #eee; color: var(--muted); white-space: nowrap; }
+  .conn .status.on { background: var(--soft); color: var(--green-d); }
+  .conn .status.bad { background: #f6e3d6; color: var(--red); }
+  .conn__body { margin-top: 12px; }
+  .conn__body ul { margin: 6px 0 10px; padding-inline-start: 18px; }
+  .conn__key { flex: 1; min-width: 220px; direction: ltr; text-align: left; }
+  .conn small.help { display: block; color: var(--muted); margin-top: 6px; }
+  .conn .num { width: 70px; }
+
   /* dashboard v2 */
   .periods { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
   .pp { border: 1px solid var(--line); background: #fff; padding: 7px 14px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
@@ -104,6 +119,7 @@
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="dashboard" aria-selected="true">לוח בקרה</button>
     <button class="tab" role="tab" data-tab="members" aria-selected="false">חברים</button>
+    <button class="tab" role="tab" data-tab="connections" aria-selected="false">חיבורים</button>
     <button class="tab" role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
   </div>
   <main id="view"><p class="muted">טוען…</p></main>
@@ -397,12 +413,96 @@
     };
   }
 
+  // ---------- connections (Klaviyo / Judge.me / Flashy) ----------
+  var TOOLS = {
+    klaviyo: { name: 'Klaviyo', color: '#232426', letter: 'K', label: 'Private API Key',
+      help: 'ב-Klaviyo: Settings ← API keys ← Create Private API Key. הרשאות: Accounts (Read), Profiles (Full), Events (Full). המפתח מתחיל ב-pk_.',
+      does: ['כל חבר מקבל בפרופיל: Club Points Balance, Club Tier, Club Referral URL, Club Points Expire At', 'אירועים לזרימות: Club Joined · Club Points Earned · Club Points Redeemed · Club Tier Achieved · Club Referral Completed · Club Points Expired', 'בחיבור הראשון כל החברים הקיימים נשלחים'] },
+    flashy: { name: 'Flashy', color: '#ff3d71', letter: 'F', label: 'API Key',
+      help: 'ב-Flashy: הגדרות ← API ← העתקת מפתח ה-API.',
+      does: ['כל חבר מתעדכן באנשי הקשר: club_points, club_tier, club_referral_url, club_points_expire, club_member', 'אירועים לאוטומציות: ClubJoined · ClubPointsEarned · ClubTierAchieved ועוד', 'בחיבור הראשון כל החברים הקיימים נשלחים'] },
+    judgeme: { name: 'Judge.me', color: '#1fa9a1', letter: 'J', label: 'Private API Token',
+      help: 'ב-Judge.me: Settings ← Integrations ← View API tokens ← Private API Token.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון (כמו שהחוק דורש)'] }
+  };
+  async function connections() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var r = await api('integrations');
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    renderConnections(r.integrations || []);
+  }
+  function renderConnections(list) {
+    view.innerHTML = '<p class="muted" style="margin-top:0">מחברים את מערכות השיווק שלכם, והמועדון מעדכן אותן לבד. המפתחות נשמרים בשרת ולא מוצגים שוב.</p><div class="conn">' +
+      list.map(function (x) {
+        var t = TOOLS[x.provider];
+        var status = !x.connected ? '<span class="status">לא מחובר</span>'
+          : x.last_error ? '<span class="status bad">שגיאה</span>' : '<span class="status on">מחובר</span>';
+        var body;
+        if (!x.connected) {
+          body = '<ul>' + t.does.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
+            '<div class="row-form"><input class="conn__key" type="password" autocomplete="off" spellcheck="false" placeholder="' + esc(t.label) + '" data-key>' +
+            (x.provider === 'judgeme' ? reviewInputs(x.settings) : '') +
+            '<button class="primary" data-connect>חיבור</button></div><small class="help">' + esc(t.help) + '</small>';
+        } else {
+          body = '<div class="muted">חשבון: <b>' + esc(x.account || t.name) + '</b> · מפתח ' + esc(x.key_hint || '') + ' · חובר ב-' + day(x.connected_at) +
+            (x.last_ok_at ? ' · עדכון אחרון ' + new Date(x.last_ok_at).toLocaleString('he-IL') : '') + '</div>' +
+            (x.last_error ? '<p class="err" dir="ltr" style="text-align:left">' + esc(x.last_error) + '</p>' : '') +
+            (x.provider === 'judgeme'
+              ? '<p>ביקורות שזיכו נקודות: <b>' + num(x.reviews_rewarded) + '</b> · סה״כ ' + nis(x.review_points_given) + '</p>' +
+                '<div class="row-form">' + reviewInputs(x.settings) + '<button class="primary" data-save>שמירה</button></div>'
+              : (x.events_waiting ? '<p class="muted">אירועים בתור לשליחה: ' + num(x.events_waiting) + '</p>' : '')) +
+            '<div class="row-form"><button class="link" data-disconnect>ניתוק</button></div>';
+        }
+        return '<div class="card" data-provider="' + x.provider + '"><div class="conn__head"><div class="conn__logo" style="background:' + t.color + '">' + t.letter +
+          '</div><div class="conn__title"><b>' + t.name + '</b></div>' + status + '</div><div class="conn__body">' + body + '</div></div>';
+      }).join('') + '</div>';
+    view.querySelectorAll('[data-provider]').forEach(function (el) {
+      var provider = el.getAttribute('data-provider');
+      var name = TOOLS[provider].name;
+      function reviewSettings() {
+        var a = el.querySelector('[data-rp]'), b = el.querySelector('[data-pp]');
+        return a ? { review_points: Number(a.value), photo_points: Number(b.value) } : undefined;
+      }
+      var c = el.querySelector('[data-connect]');
+      if (c) c.onclick = async function () {
+        var key = el.querySelector('[data-key]').value.trim();
+        if (!key) { shopify.toast.show('נא להדביק את המפתח', { isError: true }); return; }
+        c.disabled = true; c.textContent = 'בודק…';
+        var res = await api('integration_connect', {}, { provider: provider, key: key, settings: reviewSettings() });
+        if (!res.ok) { c.disabled = false; c.textContent = 'חיבור'; shopify.toast.show(res.message || 'החיבור נכשל', { isError: true }); return; }
+        shopify.toast.show(name + ' חובר');
+        renderConnections(res.integrations);
+      };
+      var s = el.querySelector('[data-save]');
+      if (s) s.onclick = async function () {
+        var res = await api('integration_settings', {}, { provider: provider, settings: reviewSettings() });
+        if (!res.ok) { shopify.toast.show('שגיאה', { isError: true }); return; }
+        shopify.toast.show('נשמר');
+        renderConnections(res.integrations);
+      };
+      var d = el.querySelector('[data-disconnect]');
+      if (d) d.onclick = async function () {
+        if (!confirm('לנתק את ' + name + '? המועדון יפסיק לעדכן אותו.')) return;
+        var res = await api('integration_disconnect', {}, { provider: provider });
+        if (!res.ok) { shopify.toast.show('שגיאה', { isError: true }); return; }
+        shopify.toast.show(name + ' נותק');
+        renderConnections(res.integrations);
+      };
+    });
+  }
+  function reviewInputs(s) {
+    s = s || {};
+    return '<label>נקודות לביקורת <input class="num" type="number" min="0" max="100" data-rp value="' + esc(s.review_points == null ? 5 : s.review_points) + '"></label>' +
+      '<label>תוספת לתמונה <input class="num" type="number" min="0" max="100" data-pp value="' + esc(s.photo_points == null ? 5 : s.photo_points) + '"></label>';
+  }
+
   // ---------- tabs ----------
   function select(tab, silent) {
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === tab)); });
     if (silent) return;
     if (tab === 'dashboard') dashboard();
     else if (tab === 'members') membersView('');
+    else if (tab === 'connections') connections();
     else settings();
   }
   document.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { select(b.getAttribute('data-tab')); }; });

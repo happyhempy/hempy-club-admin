@@ -73,6 +73,8 @@
   .pad { padding: 12px 16px; }
   .strip { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; color: var(--muted); }
   .strip b { color: var(--ink); }
+  .kpi.skel { height: 104px; background: linear-gradient(90deg, #fff 0%, #f1efe9 50%, #fff 100%); background-size: 200% 100%; animation: sk 1.2s infinite; }
+  @keyframes sk { to { background-position: -200% 0; } }
   .potential { margin-top: 12px; padding: 12px 16px; border-radius: 12px; background: #fbf5e8; border: 1px dashed var(--beige); font-size: 13px; }
   @media (max-width: 800px) { .kpis { grid-template-columns: 1fr 1fr; } .two { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } .v { font-size: 22px; } }
@@ -154,14 +156,18 @@
     }).join('') + '</div>';
   }
   var chartKey = 'joined';
+  var dashSeq = 0;
 
   async function dashboard() {
     var pills = '<div class="periods">' + PERIODS.map(function (p) {
       return '<button class="pp" data-p="' + p.id + '" aria-pressed="' + (p.id === period) + '">' + p.label + '</button>';
     }).join('') + '</div>';
-    view.innerHTML = pills + '<p class="muted">טוען…</p>';
+    view.innerHTML = pills + '<div class="kpis">' + [1, 2, 3, 4].map(function () { return '<div class="kpi skel"></div>'; }).join('') + '</div>';
+    bindPeriods();
+    var my = ++dashSeq;
     var rg = range(period);
     var r = await api('stats', { from: rg[0].toISOString(), to: rg[1].toISOString() });
+    if (my !== dashSeq) return; // a newer period was picked while this one loaded
     if (!r.ok) { view.innerHTML = pills + '<p class="err">' + esc(r.message) + '</p>'; bindPeriods(); return; }
     var c = r.stats.current, p = r.stats.previous, t = r.stats.totals, tiers = t.tiers || {};
     var aov = c.orders ? c.revenue / c.orders : 0;

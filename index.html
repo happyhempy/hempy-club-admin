@@ -1000,7 +1000,7 @@
     var body = 'שלום,\n\nלחברי המועדון שלנו יש מבצע: ' + cText(c) + '.\nהמבצע בתוקף עד ' + new Date(c.ends_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' }) + '.\n\nלקנייה: ' + store + '\n\nתודה שאתם איתנו 💚';
     // SMS: short wording so it fits one 70-character message.
     var shortBenefit = c.type === 'bonus' ? '+' + c.bonus + ' ₪' : c.type === 'free_shipping' ? 'משלוח חינם' : c.type === 'gift' ? 'מתנה' : 'פי ' + c.multiplier + ' נקודות';
-    var sms = c.name + ': ' + shortBenefit + (c.min_order ? ' מעל ' + c.min_order + '₪' : '') + ' לחברי המועדון עד ' + shortDate(c.ends_at) + ' ' +
+    var sms = c.name + ': ' + shortBenefit + (c.min_order ? ' מעל ' + c.min_order + '₪' : '') + ' לחברים עד ' + shortDate(c.ends_at) + ' ' +
       store.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
     var seg = kit.segment ? kit.segment.name : 'חברי המועדון';
     var block = function (n, title, inner) { return '<div class="nstep"><b><span class="dnum">' + n + '</span>' + title + '</b>' + inner + '</div>'; };

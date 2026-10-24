@@ -167,20 +167,21 @@
   .seg2 button[aria-pressed="true"] { background: var(--ink); color: #fff; }
   .mock { background: #fff; margin: 0 auto; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
   .mock--desk { border-radius: 10px; max-width: 100%; }
-  .mock--phone { width: 250px; border-radius: 30px; border: 8px solid #1d1a2b; position: relative; }
+  .mock--phone { width: 230px; border-radius: 30px; border: 8px solid #1d1a2b; position: relative; }
   .mock__notch { display: block; width: 80px; height: 16px; background: #1d1a2b; border-radius: 0 0 10px 10px; margin: 0 auto; }
   .mock__chrome { display: flex; align-items: center; gap: 5px; padding: 8px 10px; background: #f2f0ea; border-bottom: 1px solid var(--line); }
   .mock__chrome i { width: 9px; height: 9px; border-radius: 50%; background: #d2cec4; }
   .mock__chrome span { margin-inline-start: 8px; flex: 1; background: #fff; border-radius: 6px; padding: 2px 10px; font-size: 11px; color: var(--muted); direction: ltr; text-align: left; }
-  .mock__page { position: relative; min-height: 380px; padding-bottom: 60px; font-size: 12px; }
-  .mock--phone .mock__page { min-height: 430px; }
+  /* fixed height so the floating button (bottom corner) is always in view */
+  .mock__page { position: relative; height: 330px; overflow: hidden; font-size: 12px; }
+  .mock--phone .mock__page { height: 380px; }
   .m-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #f0ede6; }
   .m-logo { font-weight: 800; font-size: 13px; }
   .m-nav { display: flex; gap: 8px; } .m-nav i { width: 34px; height: 6px; background: #e6e2d9; border-radius: 3px; display: block; }
   .m-icons { display: flex; align-items: center; gap: 6px; }
   .m-ico { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #b9b4a8; display: block; }
   .m-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; white-space: nowrap; }
-  .m-hero { margin: 12px; height: 110px; border-radius: 10px; background: linear-gradient(120deg, #e9e3d7, #d8cfbd); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 8px; padding: 0 18px; }
+  .m-hero { margin: 12px; height: 90px; border-radius: 10px; background: linear-gradient(120deg, #e9e3d7, #d8cfbd); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 8px; padding: 0 18px; }
   .m-hero b { font-size: 16px; } .m-cta { background: #2f2e2b; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 11px; }
   .m-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 12px; }
   .m-grid--2 { grid-template-columns: repeat(2, 1fr); }

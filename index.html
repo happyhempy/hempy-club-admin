@@ -687,7 +687,8 @@
       : u(p.earn.per_100.bronze) + ' <span class="muted">(' + pct('bronze') + '% חוזר ללקוח)</span>') + '</li>');
     if (p.join_gift.amount) out.push('<li><b>מתנת הצטרפות:</b> ' + u(p.join_gift.amount) + (p.join_gift.valid_days ? ' לתוקף ' + p.join_gift.valid_days + ' יום' : ' בלי תוקף') + '</li>');
     if (p.second_order.enabled) out.push('<li><b>קנייה שנייה</b> תוך ' + p.second_order.days + ' יום: פי ' + p.second_order.multiplier + '</li>');
-    out.push('<li><b>מימוש:</b> מ-' + u(p.redeem.min_points) + ', עד ' + p.redeem.max_share + '% מההזמנה, קוד בתוקף ' + p.redeem.code_days + ' יום</li>');
+    out.push('<li><b>מימוש:</b> מ-' + u(p.redeem.min_points) + ', עד ' + p.redeem.max_share + '% מההזמנה' +
+      (p.redeem.min_order ? ', בהזמנה מעל ' + p.redeem.min_order + ' ₪' : '') + ', קוד בתוקף ' + p.redeem.code_days + ' יום</li>');
     if (p.tiers.enabled) {
       var when = function (t) { return [p.tiers[t].orders ? p.tiers[t].orders + ' קניות' : '', p.tiers[t].amount ? p.tiers[t].amount + ' ₪' : ''].filter(Boolean).join(' או '); };
       out.push('<li><b>' + at.length + ' דרגות</b> (12 חודשים אחרונים): ' + at.slice(1).map(function (t) { return esc(T[t]) + ' מ-' + when(t); }).join(' · ') + '</li>');
@@ -734,7 +735,8 @@
       section('צבירה ודרגות', 'כמה ' + (pts ? esc(p.currency.name) : '₪') + ' מקבלים על כל 100 ₪ קנייה (אחרי הנחות, בלי משלוח), ומתי עולים דרגה.', tierTable(), 'tiers.enabled') +
       section('מתנת הצטרפות', 'ניתנת מיד בהצטרפות. 0 ימים = בלי תאריך תפוגה משלה.', '<div class="fields">' + inp('join_gift.amount', 'סכום') + inp('join_gift.valid_days', 'תוקף בימים') + '</div>') +
       section('בונוס קנייה שנייה', 'מעודד לקוח חדש לחזור (הקנייה השנייה היא הקשה ביותר).', '<div class="fields">' + inp('second_order.days', 'תוך כמה ימים', { min: 1 }) + inp('second_order.multiplier', 'פי כמה', { min: 1, step: 0.5 }) + '</div>', 'second_order.enabled') +
-      section('מימוש', 'המימוש בעגלה, לא בשילוב קופון נוסף.', '<div class="fields">' + inp('redeem.min_points', 'מינימום למימוש', { min: 1 }) + inp('redeem.max_share', 'עד % מההזמנה', { min: 5 }) + inp('redeem.code_days', 'תוקף קוד (ימים)', { min: 1 }) + '</div>') +
+      section('מימוש', 'המימוש בעגלה, לא בשילוב קופון נוסף.', '<div class="fields">' + inp('redeem.min_points', 'מינימום למימוש', { min: 1 }) + inp('redeem.max_share', 'עד % מההזמנה', { min: 5 }) + inp('redeem.code_days', 'תוקף קוד (ימים)', { min: 1 }) +
+        inp('redeem.min_order', 'מינימום הזמנה למימוש (₪, 0 = בלי)') + '</div>') +
       section('יום הולדת', 'הנחה באחוזים על קנייה אחת בחודש יום ההולדת.', '<div class="fields">' + inp('birthday.percent.bronze', esc(p.tiers.names.bronze) + ' %', { min: 1 }) +
         activeT().slice(1).map(function (t) { return inp('birthday.percent.' + t, esc(p.tiers.names[t]) + ' %', { min: 1 }); }).join('') + '</div>', 'birthday.enabled') +
       section('חבר מביא חבר', 'החבר החדש מקבל בונוס על מתנת ההצטרפות, והמזמין מקבל כשהחבר קונה.', '<div class="fields">' + inp('referral.friend_bonus', 'בונוס לחבר') + inp('referral.referrer_reward', 'למזמין') + inp('referral.min_order', 'קנייה מינימלית (₪)') + '</div>', 'referral.enabled') +

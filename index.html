@@ -998,7 +998,10 @@
     var store = (kit.store && kit.store.url) || '';
     var subject = c.name + ': ' + cText(c);
     var body = 'שלום,\n\nלחברי המועדון שלנו יש מבצע: ' + cText(c) + '.\nהמבצע בתוקף עד ' + new Date(c.ends_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' }) + '.\n\nלקנייה: ' + store + '\n\nתודה שאתם איתנו 💚';
-    var sms = c.name + ': ' + cText(c) + ' עד ' + shortDate(c.ends_at) + ' ' + store.replace(/^https?:\/\/(www\.)?/, '');
+    // SMS: short wording so it fits one 70-character message.
+    var shortBenefit = c.type === 'bonus' ? '+' + c.bonus + ' ₪' : c.type === 'free_shipping' ? 'משלוח חינם' : c.type === 'gift' ? 'מתנה' : 'פי ' + c.multiplier + ' נקודות';
+    var sms = c.name + ': ' + shortBenefit + (c.min_order ? ' מעל ' + c.min_order + '₪' : '') + ' לחברי המועדון עד ' + shortDate(c.ends_at) + ' ' +
+      store.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
     var seg = kit.segment ? kit.segment.name : 'חברי המועדון';
     var block = function (n, title, inner) { return '<div class="nstep"><b><span class="dnum">' + n + '</span>' + title + '</b>' + inner + '</div>'; };
     var copyArea = function (id, val, rows) { return '<textarea id="' + id + '" rows="' + rows + '">' + esc(val) + '</textarea><button class="tab" data-copy-from="' + id + '">העתקה</button>'; };
@@ -1009,7 +1012,7 @@
       '<label class="cf"><span>תוכן</span></label>' + copyArea('n-body-' + i, body, 7) +
       '<a class="primary btnlink" href="' + esc(kit.messaging_url) + '" target="_top">פתיחת Shopify Messaging ←</a>');
     out += block(n++, 'SMS', '<p class="muted">עד 70 תווים נשלח כהודעה אחת (זול יותר).</p>' + copyArea('n-sms-' + i, sms, 2) +
-      '<span class="cnt" data-sms-count="' + i + '">' + sms.length + ' / 70</span>');
+      '<span class="cnt' + (sms.length > 70 ? ' over' : '') + '" data-sms-count="' + i + '">' + sms.length + ' / 70' + (sms.length > 70 ? ' · קצרו את שם המבצע' : '') + '</span>');
     if (kit.tools && kit.tools.length) {
       out += block(n++, 'כלי המייל המחוברים', '<p class="muted">שולח לכל ' + num(kit.members) + ' החברים את האירוע "Club Campaign" ל-' + kit.tools.join(', ') +
         '. שם בונים זרימה שנשלחת כשמגיע האירוע.</p><button class="primary" data-tools="' + i + '">שליחה ל-' + num(kit.members) + ' חברים</button>');

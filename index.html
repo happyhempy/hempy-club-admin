@@ -132,6 +132,8 @@
   .nstep textarea { width: 100%; font: inherit; padding: 8px; border: 1px solid #cfccc3; border-radius: 8px; resize: vertical; }
   .nstep .tab { justify-self: start; }
   .btnlink { display: inline-block; text-decoration: none; justify-self: start; }
+  .howto { font-size: 13px; } .howto summary { cursor: pointer; font-weight: 700; color: var(--green-d); }
+  .howto ol { margin: 6px 0 0; padding-inline-start: 18px; color: var(--muted); }
   .cnt { font-size: 12px; color: var(--muted); } .cnt.over { color: var(--red); font-weight: 700; }
   .camp__row { display: grid; grid-template-columns: 1.4fr .6fr 1fr 1fr auto; gap: 10px; align-items: end; }
   .camp__row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
@@ -1011,8 +1013,20 @@
       '<label class="cf"><span>נושא</span></label>' + copyArea('n-subj-' + i, subject, 1) +
       '<label class="cf"><span>תוכן</span></label>' + copyArea('n-body-' + i, body, 7) +
       '<a class="primary btnlink" href="' + esc(kit.messaging_url) + '" target="_top">פתיחת Shopify Messaging ←</a>');
-    out += block(n++, 'SMS', '<p class="muted">עד 70 תווים נשלח כהודעה אחת (זול יותר).</p>' + copyArea('n-sms-' + i, sms, 2) +
-      '<span class="cnt' + (sms.length > 70 ? ' over' : '') + '" data-sms-count="' + i + '">' + sms.length + ' / 70' + (sms.length > 70 ? ' · קצרו את שם המבצע' : '') + '</span>');
+    // SMS: tools that send SMS themselves get a one-click button; otherwise copy the text into your SMS service.
+    var SMS_TOOLS = { klaviyo: 'Klaviyo', attentive: 'Attentive', omnisend: 'Omnisend', flashy: 'Flashy' };
+    var smsTool = (kit.tools || []).filter(function (t) { return SMS_TOOLS[t]; }).map(function (t) { return SMS_TOOLS[t]; })[0];
+    var smsCount = '<span class="cnt' + (sms.length > 70 ? ' over' : '') + '" data-sms-count="' + i + '">' + sms.length + ' / 70' + (sms.length > 70 ? ' · קצרו את שם המבצע' : '') + '</span>';
+    out += block(n++, 'SMS', smsTool
+      ? '<p class="muted">' + smsTool + ' שולח את ה-SMS לחברים שאישרו קבלת SMS. ההודעה:</p>' + copyArea('n-sms-' + i, sms, 2) + smsCount +
+        '<button class="primary" data-tools="' + i + '" data-channel="sms">שליחת SMS דרך ' + smsTool + '</button>' +
+        '<details class="howto"><summary>פעם ראשונה? כך מכינים את זה ב-' + smsTool + ' (2 דקות)</summary><ol>' +
+          '<li>ב-' + smsTool + ' פותחים Flows ← Create flow ← Build your own.</li>' +
+          '<li>בוחרים טריגר: Metric ← <b>Club Campaign</b>.</li>' +
+          '<li>מוסיפים שלב SMS ומדביקים את ההודעה שלמעלה. אפשר להשתמש בשם המבצע מהאירוע: {{ event.campaign }}.</li>' +
+          '<li>מפעילים את ה-Flow. מעכשיו כל לחיצה כאן שולחת אותו לכל החברים.</li></ol></details>'
+      : '<p class="muted">מעתיקים לשירות ה-SMS שלכם (עד 70 תווים נשלח כהודעה אחת וזול יותר). מחברים Klaviyo, Attentive, Omnisend או Flashy בהגדרות ← חיבורים, ואז שולחים מכאן בלחיצה.</p>' +
+        copyArea('n-sms-' + i, sms, 2) + smsCount);
     if (kit.tools && kit.tools.length) {
       out += block(n++, 'כלי המייל המחוברים', '<p class="muted">שולח לכל ' + num(kit.members) + ' החברים את האירוע "Club Campaign" ל-' + kit.tools.join(', ') +
         '. שם בונים זרימה שנשלחת כשמגיע האירוע.</p><button class="primary" data-tools="' + i + '">שליחה ל-' + num(kit.members) + ' חברים</button>');
@@ -1092,7 +1106,8 @@
     view.querySelectorAll('[data-tools]').forEach(function (b) {
       b.onclick = async function () {
         var c = camps[Number(b.getAttribute('data-tools'))];
-        if (!confirm('לשלוח את המבצע "' + c.name + '" ל-' + kit.members + ' חברים דרך ' + kit.tools.join(', ') + '?')) return;
+        var viaSms = b.getAttribute('data-channel') === 'sms';
+        if (!confirm((viaSms ? 'לשלוח SMS על המבצע "' : 'לשלוח את המבצע "') + c.name + '" ל-' + kit.members + ' חברים דרך ' + kit.tools.join(', ') + '?')) return;
         b.disabled = true;
         var r = await api('campaign_notify', {}, { id: c.id, channel: 'tools' });
         b.disabled = false;

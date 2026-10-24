@@ -107,6 +107,36 @@
   .savebar { position: sticky; bottom: 0; background: var(--cream); padding: 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 16px; }
   @media (max-width: 700px) { .pf .tierrow { grid-template-columns: 60px repeat(5, 1fr); font-size: 12px; } }
 
+  /* campaigns & design */
+  .expwarn { background: #fff3e0; border-color: #f3d2a2; margin-top: 12px; }
+  .camp { display: grid; gap: 10px; }
+  .camp__row { display: grid; grid-template-columns: 1.4fr .6fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  .camp__row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .camp__row input { width: 100%; }
+  .camp__state { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: #eee; color: var(--muted); white-space: nowrap; }
+  .camp__state.on { background: var(--soft); color: var(--green-d); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .design { display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start; }
+  .design .fields { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
+  .design label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  .design input[type="color"] { width: 64px; height: 38px; padding: 2px; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .icons { display: flex; gap: 6px; flex-wrap: wrap; }
+  .icons button { font-size: 20px; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .icons button[aria-pressed="true"] { border-color: var(--green); background: var(--soft); }
+  .pv { position: sticky; top: 12px; background: #f2efe8; border-radius: 16px; padding: 14px; min-height: 420px; overflow: hidden; }
+  .pv__site { background: #fff; border-radius: 12px; padding: 14px; font-size: 13px; position: relative; min-height: 390px; }
+  .pv__bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .pv__badge, .pv__btn, .pv__fab, .pv__earn { font-weight: 700; }
+  .pv__badge { padding: 4px 10px; font-size: 12px; }
+  .pv__prod { display: grid; gap: 8px; }
+  .pv__img { height: 110px; border-radius: 10px; background: linear-gradient(135deg, #e8e2d6, #d9d1c0); }
+  .pv__earn { border-radius: 10px; padding: 8px 10px; font-weight: 400; }
+  .pv__btn { text-align: center; padding: 10px; }
+  .pv__fab { position: absolute; bottom: 14px; padding: 10px 16px; box-shadow: 0 6px 16px rgba(0,0,0,.2); }
+  @media (max-width: 900px) { .design { grid-template-columns: 1fr; } .camp__row { grid-template-columns: 1fr 1fr; } }
+
   /* connections */
   .conn { display: grid; gap: 12px; }
   .conn__head { display: flex; align-items: center; gap: 12px; }
@@ -171,6 +201,8 @@
     <button class="tab" role="tab" data-tab="dashboard" aria-selected="true">לוח בקרה</button>
     <button class="tab" role="tab" data-tab="members" aria-selected="false">חברים</button>
     <button class="tab" role="tab" data-tab="program" aria-selected="false">תוכנית</button>
+    <button class="tab" role="tab" data-tab="campaigns" aria-selected="false">מבצעים</button>
+    <button class="tab" role="tab" data-tab="design" aria-selected="false">עיצוב</button>
     <button class="tab" role="tab" data-tab="connections" aria-selected="false">חיבורים</button>
     <button class="tab" role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
   </div>
@@ -291,6 +323,10 @@
         kpi('נקודות שמומשו', nis(c.redeemed), delta(c.redeemed, p.redeemed), num(c.redemptions) + ' הזמנות עם נקודות') +
         kpi('החזר על כל ₪ הנחה', roi ? roi.toFixed(1) + ' ₪' : '—', '', 'הכנסה מחברים ÷ נקודות שמומשו') +
       '</div>' +
+      (r.stats.expiring && r.stats.expiring.members
+        ? '<div class="card expwarn">⏳ <b>' + num(r.stats.expiring.members) + ' חברים</b> עם <b>' + nis(r.stats.expiring.points) + '</b> שיפוגו ב-30 הימים הקרובים. ' +
+          'המועדון מזכיר להם באתר ובעגלה, ושולח את האירוע לכלי המייל המחוברים. ב-Shopify Messaging אפשר לשלוח להם קמפיין לפי השדה "מועדון: הנקודות פגות ב".</div>'
+        : '') +
       '<div class="panel">' +
         '<div class="panel__head"><b>30 הימים האחרונים</b><div class="seg">' +
           '<button data-c="joined" aria-pressed="' + (chartKey === 'joined') + '">הצטרפויות</button>' +
@@ -742,6 +778,145 @@
     };
   }
 
+  // ---------- campaigns (bonus points for a period, like Rivo) ----------
+  var camps = [];
+  function isoLocal(d) { var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); }
+  async function campaignsView() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
+    var r = await api('campaigns');
+    if (mySeq !== viewSeq) return;
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    camps = r.campaigns || [];
+    renderCampaigns();
+  }
+  function campState(c) {
+    var now = Date.now(), s = new Date(c.starts_at), e = new Date(c.ends_at);
+    if (c.enabled === false) return '<span class="camp__state">כבוי</span>';
+    if (e <= now) return '<span class="camp__state">הסתיים</span>';
+    if (s <= now) return '<span class="camp__state on">פעיל עכשיו</span>';
+    return '<span class="camp__state">מתחיל ' + day(c.starts_at) + '</span>';
+  }
+  function nextWeekday(dow, hour) { var d = new Date(); d.setHours(hour, 0, 0, 0); while (d.getDay() !== dow || d < new Date()) d.setDate(d.getDate() + 1); return d; }
+  function renderCampaigns() {
+    var presets = [
+      { label: 'סופ״ש פי 2', make: function () { var s = nextWeekday(4, 18); var e = new Date(s); e.setDate(e.getDate() + 3); e.setHours(23, 59); return { name: 'סופ״ש נקודות כפולות', multiplier: 2, starts_at: s, ends_at: e }; } },
+      { label: 'בלאק נובמבר פי 2', make: function () { return { name: 'בלאק נובמבר', multiplier: 2, starts_at: new Date('2026-11-01T00:00:00+02:00'), ends_at: new Date('2026-11-30T23:59:00+02:00') }; } },
+      { label: '24 שעות פי 3', make: function () { var s = new Date(); s.setMinutes(0, 0, 0); s.setHours(s.getHours() + 1); var e = new Date(s.getTime() + 86400000); return { name: 'מבצע בזק פי 3', multiplier: 3, starts_at: s, ends_at: e }; } }
+    ];
+    view.innerHTML =
+      '<p class="muted" style="margin-top:0">בתקופת מבצע, חברי המועדון מקבלים פי כמה נקודות על כל קנייה. המבצע מופיע לבד בדף המוצר, בעגלה ובדף המועדון. ' +
+      'הנקודות הנוספות נרשמות בנפרד ומתבטלות עם החזרה או ביטול של ההזמנה.</p>' +
+      '<div class="presets"><span class="muted" style="align-self:center">התחלה מהירה:</span>' + presets.map(function (p, i) { return '<button class="tab" data-preset="' + i + '">' + p.label + '</button>'; }).join('') + '</div>' +
+      '<div class="camp">' + (camps.length ? camps.map(function (c, i) {
+        return '<div class="card"><div class="camp__row">' +
+          '<label>שם המבצע (מופיע ללקוחות)<input type="text" maxlength="40" data-i="' + i + '" data-k="name" value="' + esc(c.name) + '"></label>' +
+          '<label>פי כמה<select data-i="' + i + '" data-k="multiplier">' + [1.5, 2, 2.5, 3, 4, 5].map(function (m) { return '<option value="' + m + '"' + (Number(c.multiplier) === m ? ' selected' : '') + '>×' + m + '</option>'; }).join('') + '</select></label>' +
+          '<label>התחלה<input type="datetime-local" data-i="' + i + '" data-k="starts_at" value="' + isoLocal(c.starts_at) + '"></label>' +
+          '<label>סיום<input type="datetime-local" data-i="' + i + '" data-k="ends_at" value="' + isoLocal(c.ends_at) + '"></label>' +
+          '<div style="display:flex;gap:8px;align-items:center">' + campState(c) + '<button class="link" data-del="' + i + '">מחיקה</button></div>' +
+        '</div></div>';
+      }).join('') : '<div class="card muted">אין מבצעים. בחרו התחלה מהירה או הוסיפו מבצע.</div>') + '</div>' +
+      '<div class="savebar"><button class="tab" data-add>+ מבצע חדש</button><button class="primary" data-save-camps>שמירה</button></div>';
+    view.querySelectorAll('[data-preset]').forEach(function (b) {
+      b.onclick = function () { var p = presets[Number(b.getAttribute('data-preset'))].make(); p.enabled = true; camps.push(p); renderCampaigns(); };
+    });
+    view.querySelector('[data-add]').onclick = function () {
+      var s = new Date(); s.setMinutes(0, 0, 0); s.setHours(s.getHours() + 1);
+      camps.push({ name: 'מבצע נקודות', multiplier: 2, starts_at: s, ends_at: new Date(s.getTime() + 3 * 86400000), enabled: true });
+      renderCampaigns();
+    };
+    view.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { camps.splice(Number(b.getAttribute('data-del')), 1); renderCampaigns(); }; });
+    view.querySelectorAll('[data-k]').forEach(function (el) {
+      el.onchange = function () {
+        var c = camps[Number(el.getAttribute('data-i'))], k = el.getAttribute('data-k');
+        c[k] = k === 'multiplier' ? Number(el.value) : (k === 'starts_at' || k === 'ends_at') ? new Date(el.value).toISOString() : el.value;
+      };
+    });
+    view.querySelector('[data-save-camps]').onclick = async function () {
+      var r = await api('campaigns', {}, { campaigns: camps });
+      if (!r.ok) { shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
+      camps = r.campaigns;
+      shopify.toast.show(r.warning || 'המבצעים נשמרו', r.warning ? { isError: true } : undefined);
+      renderCampaigns();
+    };
+  }
+
+  // ---------- store design (like Smile's Branding panel) ----------
+  var brand = null, brandSaved = null;
+  var SWATCHES = ['#47792b', '#1f6f5c', '#2563eb', '#6c4bf4', '#c2185b', '#e4572e', '#1d1a2b', '#b08a1e'];
+  var ICON_SET = ['⭐', '🎁', '💎', '👑', '💚', '🏆', '✨', '🛍️'];
+  async function designView() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
+    var r = await api('branding');
+    if (mySeq !== viewSeq) return;
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    brand = clone(r.branding); brandSaved = clone(r.branding);
+    renderDesign();
+  }
+  function mix(hex, pct, base) {
+    var h = hex.replace('#', ''), b = base.replace('#', '');
+    var c = [0, 2, 4].map(function (i) { return Math.round(parseInt(h.substr(i, 2), 16) * pct + parseInt(b.substr(i, 2), 16) * (1 - pct)); });
+    return '#' + c.map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+  function renderDesign() {
+    var b = brand, soft = mix(b.primary, 0.14, '#ffffff'), dark = mix(b.primary, 0.78, '#000000');
+    var dirty = JSON.stringify(brand) !== JSON.stringify(brandSaved);
+    var rad = b.corner + 'px';
+    view.innerHTML =
+      '<p class="muted" style="margin-top:0">כך המועדון נראה באתר שלכם. השינוי נכנס לאתר מיד עם השמירה.</p>' +
+      '<div class="design"><div class="pf">' +
+        '<div class="card"><h3>צבעים</h3><div class="fields">' +
+          '<label class="f">צבע ראשי<input type="color" data-b="primary" value="' + esc(b.primary) + '"></label>' +
+          '<div class="swatches">' + SWATCHES.map(function (c) { return '<button class="swatch" style="background:' + c + '" data-sw="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div>' +
+          '<label class="f">טקסט על הצבע<input type="color" data-b="primary_text" value="' + esc(b.primary_text) + '"></label>' +
+          '<label class="f">צבע משני<input type="color" data-b="accent" value="' + esc(b.accent) + '"></label>' +
+          '<label class="f">עיגול פינות<input type="range" min="0" max="99" data-b="corner" value="' + b.corner + '"></label>' +
+        '</div></div>' +
+        '<div class="card"><h3>הכפתור הצף</h3><div class="fields">' +
+          '<label class="f">טקסט<input type="text" maxlength="24" data-b="launcher_label" data-t="text" value="' + esc(b.launcher_label) + '"></label>' +
+          '<label class="f">צד<select data-b="position" data-t="text"><option value="right"' + (b.position === 'right' ? ' selected' : '') + '>ימין</option><option value="left"' + (b.position === 'left' ? ' selected' : '') + '>שמאל</option></select></label>' +
+        '</div><p class="hint" style="margin:10px 0 6px">אייקון</p><div class="icons">' + ICON_SET.map(function (ic) { return '<button data-ic="' + ic + '" aria-pressed="' + (b.launcher_icon === ic) + '">' + ic + '</button>'; }).join('') + '</div>' +
+        '<div class="fields" style="margin-top:12px">' +
+          tgB('show_launcher', 'להציג את הכפתור הצף') + tgB('show_launcher_mobile', 'גם בטלפון') +
+        '</div></div>' +
+        '<div class="card"><h3>מה מופיע באתר</h3><div class="fields">' +
+          tgB('show_header_badge', 'יתרה ליד אייקון החשבון בתפריט') + tgB('show_product_badge', '"תקבלו X חזרה" בדף המוצר') +
+        '</div></div>' +
+      '</div>' +
+      '<div class="pv" aria-label="תצוגה מקדימה"><div class="pv__site">' +
+        '<div class="pv__bar"><b>החנות שלי</b>' + (b.show_header_badge ? '<span class="pv__badge" style="background:' + soft + ';color:' + dark + ';border-radius:' + rad + '">' + esc(b.launcher_icon) + ' 64 ₪</span>' : '<span></span>') + '</div>' +
+        '<div class="pv__prod"><div class="pv__img"></div><b>תיק צד קנבוס</b><span>189 ₪</span>' +
+          (b.show_product_badge ? '<div class="pv__earn" style="background:' + soft + '">' + esc(b.launcher_icon) + ' על המוצר הזה תקבלו <b style="color:' + dark + '">9 ₪</b> חזרה</div>' : '') +
+          '<div class="pv__btn" style="background:' + esc(b.primary) + ';color:' + esc(b.primary_text) + ';border-radius:' + Math.min(b.corner, 12) + 'px">השתמש ב-64 נקודות</div>' +
+        '</div>' +
+        (b.show_launcher ? '<div class="pv__fab" style="' + (b.position === 'left' ? 'left' : 'right') + ':14px;background:' + esc(b.primary) + ';color:' + esc(b.primary_text) + ';border-radius:' + rad + '">' + esc(b.launcher_icon) + ' ' + esc(b.launcher_label) + '</div>' : '') +
+      '</div></div></div>' +
+      '<div class="savebar"><button class="primary" data-save-b ' + (dirty ? '' : 'disabled') + '>שמירה</button>' +
+        (dirty ? '<button class="link" data-reset-b>ביטול</button><span class="muted">יש שינויים שלא נשמרו</span>' : '<span class="muted">העיצוב שמור ופעיל</span>') + '</div>';
+    view.querySelectorAll('[data-b]').forEach(function (el) {
+      var ev = el.type === 'color' || el.type === 'range' ? 'input' : 'change';
+      el.addEventListener(ev, function () {
+        var k = el.getAttribute('data-b');
+        brand[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
+        var y = window.scrollY; renderDesign(); window.scrollTo(0, y);
+        var again = view.querySelector('[data-b="' + k + '"]'); if (again && el.type !== 'checkbox') again.focus();
+      });
+    });
+    view.querySelectorAll('[data-sw]').forEach(function (s) { s.onclick = function () { brand.primary = s.getAttribute('data-sw'); renderDesign(); }; });
+    view.querySelectorAll('[data-ic]').forEach(function (s) { s.onclick = function () { brand.launcher_icon = s.getAttribute('data-ic'); renderDesign(); }; });
+    var rs = view.querySelector('[data-reset-b]'); if (rs) rs.onclick = function () { brand = clone(brandSaved); renderDesign(); };
+    view.querySelector('[data-save-b]').onclick = async function () {
+      var r = await api('branding', {}, { branding: brand });
+      if (!r.ok) { shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
+      brand = clone(r.branding); brandSaved = clone(r.branding);
+      shopify.toast.show(r.warning || 'העיצוב נשמר', r.warning ? { isError: true } : undefined);
+      renderDesign();
+    };
+  }
+  function tgB(k, label) { return '<label class="tg"><input type="checkbox" data-b="' + k + '" ' + (brand[k] ? 'checked' : '') + '> ' + label + '</label>'; }
+
   // ---------- connections ----------
   var GROUPS = [
     { kind: 'email', title: 'מייל ו-SMS', hint: 'פרטי המועדון של כל חבר נכנסים לאיש הקשר שלו, ואירועי המועדון מפעילים אוטומציות.' },
@@ -906,6 +1081,8 @@
     else if (tab === 'members') membersView();
     else if (tab === 'connections') connections();
     else if (tab === 'program') programView();
+    else if (tab === 'campaigns') campaignsView();
+    else if (tab === 'design') designView();
     else settings();
   }
   document.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { select(b.getAttribute('data-tab')); }; });

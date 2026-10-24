@@ -489,7 +489,7 @@
             m.birthday ? 'יום הולדת ' + new Date(m.birthday).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' }) + (age != null ? ' (גיל ' + age + ')' : '') : ''].filter(Boolean).join(' · ') + '</p>' +
         '</div><a class="tab" href="' + STORE + '/customers/' + esc(m.shopify_customer_id) + '" target="_top">פתיחה ב-Shopify ↗</a></div>' +
         '<div class="grid">' +
-          card('סה״כ קניות', nis(st.spent), num(st.orders) + ' הזמנות', 'hl') +
+          card('קניות שנספרו במועדון', nis(st.spent), num(st.orders) + ' הזמנות · מוצרים אחרי הנחות', 'hl') +
           card('ממוצע להזמנה', nis(avg)) +
           card('12 החודשים האחרונים', nis(st.spent_12m), num(st.orders_12m) + ' הזמנות') +
           card('מאז ההצטרפות', nis(st.spent_since_join)) +

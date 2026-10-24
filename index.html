@@ -108,9 +108,31 @@
   @media (max-width: 700px) { .pf .tierrow { grid-template-columns: 60px repeat(5, 1fr); font-size: 12px; } }
 
   .subnav { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .rangebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: -4px 0 10px; }
+  .rangebar label { font-weight: 700; font-size: 13px; }
+  .rangelbl { color: var(--muted); font-size: 13px; margin: -4px 0 12px; }
   /* campaigns & design */
   .expwarn { background: #fff3e0; border-color: #f3d2a2; margin-top: 12px; }
-  .camp { display: grid; gap: 10px; }
+  .camp { display: grid; gap: 12px; }
+  .ctypes { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .ctypeopt { display: grid; gap: 4px; justify-items: start; text-align: right; padding: 14px; border: 2px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; }
+  .ctypeopt:hover { border-color: var(--green); background: var(--soft); }
+  .ctypeopt__i { font-size: 26px; } .ctypeopt span:last-child { color: var(--muted); font-size: 13px; }
+  .ccard__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .ctype { font-weight: 800; flex: 1; }
+  .cfields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .cf { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .cf input, .cf select { width: 100%; }
+  .giftpick { width: 100%; text-align: right; }
+  .ccard__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .cline { font-size: 13px; }
+  .npanel { margin-top: 12px; display: grid; gap: 10px; background: #faf9f6; border-radius: 12px; padding: 12px; }
+  .nstep { display: grid; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .nstep > b { display: flex; align-items: center; gap: 8px; }
+  .nstep textarea { width: 100%; font: inherit; padding: 8px; border: 1px solid #cfccc3; border-radius: 8px; resize: vertical; }
+  .nstep .tab { justify-self: start; }
+  .btnlink { display: inline-block; text-decoration: none; justify-self: start; }
+  .cnt { font-size: 12px; color: var(--muted); } .cnt.over { color: var(--red); font-weight: 700; }
   .camp__row { display: grid; grid-template-columns: 1.4fr .6fr 1fr 1fr auto; gap: 10px; align-items: end; }
   .camp__row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
   .camp__row input { width: 100%; }
@@ -128,6 +150,10 @@
   .swatch.on { box-shadow: 0 0 0 2px var(--ink); }
   .swatch--custom { display: inline-flex; align-items: center; justify-content: center; background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); color: #fff; font-weight: 800; position: relative; overflow: hidden; }
   .swatch--custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .hexrow { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .hexrow label { font-size: 13px; font-weight: 700; }
+  .hexchip { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); }
+  .hexin { width: 110px; font-family: ui-monospace, monospace; text-align: left; }
   .posopts, .cornopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
   .posopt, .cornopt { display: grid; gap: 6px; justify-items: center; padding: 10px; border: 2px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; font-weight: 600; }
   .posopt.on, .cornopt.on { border-color: var(--green); background: var(--soft); }
@@ -338,20 +364,34 @@
 
   // ---------- dashboard ----------
   var PERIODS = [
-    { id: 'today', label: 'היום' }, { id: 'yesterday', label: 'אתמול' },
-    { id: '7', label: '7 ימים' }, { id: '30', label: '30 ימים' }, { id: 'all', label: 'מתחילת המועדון' }
+    { id: 'today', label: 'היום' }, { id: 'yesterday', label: 'אתמול' }, { id: '7', label: 'שבוע אחורה' },
+    { id: '30', label: 'חודש אחורה' }, { id: '90', label: '3 חודשים' }, { id: '365', label: 'שנה' },
+    { id: 'all', label: 'מתחילת המועדון' }, { id: 'custom', label: 'תאריכים לבחירה…' }
   ];
   var period = '7';
+  var custom = { from: '', to: '' };
+  try { var savedP = JSON.parse(localStorage.getItem('declub-period') || 'null'); if (savedP) { period = savedP.period; custom = savedP.custom || custom; } } catch (e) {}
+  var CLUB_START = new Date('2026-10-22T00:00:00+03:00');
+  function ymdLocal(d) { var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); }
   function range(id) {
     var now = new Date(), start = new Date(now); start.setHours(0, 0, 0, 0);
+    var back = function (days) { var a = new Date(start); a.setDate(a.getDate() - (days - 1)); return [a, now]; };
     if (id === 'today') return [start, now];
     if (id === 'yesterday') { var y = new Date(start); y.setDate(y.getDate() - 1); return [y, start]; }
-    if (id === '7') { var a = new Date(start); a.setDate(a.getDate() - 6); return [a, now]; }
-    if (id === '30') { var b = new Date(start); b.setDate(b.getDate() - 29); return [b, now]; }
-    return [new Date('2026-10-22T00:00:00+03:00'), now];
+    if (id === '7' || id === '30' || id === '90' || id === '365') return back(Number(id));
+    if (id === 'custom' && custom.from && custom.to) {
+      var f = new Date(custom.from + 'T00:00:00'), t = new Date(custom.to + 'T00:00:00'); t.setDate(t.getDate() + 1);
+      if (t > f) return [f, t > now ? now : t];
+    }
+    return [CLUB_START, now];
+  }
+  function rangeLabel(rg) {
+    var o = { day: 'numeric', month: 'short', year: 'numeric' };
+    var end = new Date(rg[1].getTime() - 1000);
+    return rg[0].toLocaleDateString('he-IL', o) + (ymdLocal(rg[0]) === ymdLocal(end) ? '' : ' – ' + end.toLocaleDateString('he-IL', o));
   }
   function delta(cur, prev) {
-    if (period === 'all') return '';
+    if (period === 'all' || range(period)[0] <= CLUB_START) return '';
     if (!prev && !cur) return '<span class="d flat">—</span>';
     if (!prev) return '<span class="d up">חדש</span>';
     var p = Math.round(((cur - prev) / prev) * 100);
@@ -363,11 +403,13 @@
   }
   function chart(daily, key, fmt) {
     var max = Math.max.apply(null, daily.map(function (x) { return Number(x[key]) || 0; }).concat([1]));
+    var every = Math.max(1, Math.ceil(daily.length / 7));
     return '<div class="chart">' + daily.map(function (x, i) {
       var v = Number(x[key]) || 0;
       var dd = new Date(x.day + 'T12:00:00');
-      var lbl = (i % 5 === 4 || i === daily.length - 1) ? dd.getDate() + '.' + (dd.getMonth() + 1) : '';
-      return '<div class="col" title="' + dd.toLocaleDateString('he-IL') + ': ' + fmt(v) + '"><div class="col__bar" style="height:' + Math.max(2, Math.round((v / max) * 100)) + '%">' +
+      var lbl = (i % every === every - 1 || i === daily.length - 1) ? dd.getDate() + '.' + (dd.getMonth() + 1) : '';
+      var tip = dd.toLocaleDateString('he-IL') + (x.to && x.to !== x.day ? '–' + new Date(x.to + 'T12:00:00').toLocaleDateString('he-IL') : '');
+      return '<div class="col" title="' + tip + ': ' + fmt(v) + '"><div class="col__bar" style="height:' + Math.max(2, Math.round((v / max) * 100)) + '%">' +
         (v ? '<i>' + (key === 'revenue' ? Math.round(v) : v) + '</i>' : '') + '</div><div class="col__lbl">' + lbl + '</div></div>';
     }).join('') + '</div>';
   }
@@ -375,9 +417,16 @@
   var dashSeq = 0;
 
   async function dashboard() {
+    var rg0 = range(period);
     var pills = '<div class="periods">' + PERIODS.map(function (p) {
       return '<button class="pp" data-p="' + p.id + '" aria-pressed="' + (p.id === period) + '">' + p.label + '</button>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' +
+      (period === 'custom'
+        ? '<div class="rangebar"><label for="range-from">מ-</label><input type="date" id="range-from" value="' + esc(custom.from) + '" min="2024-01-01" max="' + ymdLocal(new Date()) + '">' +
+          '<label for="range-to">עד</label><input type="date" id="range-to" value="' + esc(custom.to) + '" min="2024-01-01" max="' + ymdLocal(new Date()) + '">' +
+          '<button class="primary" data-range-go>הצגה</button></div>'
+        : '') +
+      '<p class="rangelbl">' + rangeLabel(rg0) + (period !== 'all' && rg0[0] > CLUB_START ? ' · בהשוואה לתקופה שלפני' : '') + '</p>';
     view.innerHTML = pills + '<div class="kpis">' + [1, 2, 3, 4].map(function () { return '<div class="kpi skel"></div>'; }).join('') + '</div>';
     bindPeriods();
     var my = ++dashSeq;
@@ -405,7 +454,7 @@
           '. <span class="muted">לחברים המועדון מזכיר באתר, בעגלה ובכלי המייל המחוברים. ב-Shopify Messaging אפשר לשלוח קמפיין לפי השדה "מועדון: הנקודות פגות ב".</span></div>'
         : '') +
       '<div class="panel">' +
-        '<div class="panel__head"><b>30 הימים האחרונים</b><div class="seg">' +
+        '<div class="panel__head"><b>' + (r.stats.bucket_days === 7 ? 'לפי שבועות' : 'לפי ימים') + ' · ' + rangeLabel(rg) + '</b><div class="seg">' +
           '<button data-c="joined" aria-pressed="' + (chartKey === 'joined') + '">הצטרפויות</button>' +
           '<button data-c="revenue" aria-pressed="' + (chartKey === 'revenue') + '">הכנסה מחברים</button></div></div>' +
         chart(r.stats.daily, chartKey, chartKey === 'revenue' ? nis : num) +
@@ -456,8 +505,23 @@
           }).join('') + '</ul>' : '<p class="muted pad">עוד אין שיתופים בתקופה הזו.</p>') + '</div>' +
       '</div></div>';
   }
+  function savePeriod() { try { localStorage.setItem('declub-period', JSON.stringify({ period: period, custom: custom })); } catch (e) {} }
   function bindPeriods() {
-    view.querySelectorAll('.pp').forEach(function (b) { b.onclick = function () { period = b.getAttribute('data-p'); dashboard(); }; });
+    view.querySelectorAll('.pp').forEach(function (b) {
+      b.onclick = function () {
+        period = b.getAttribute('data-p');
+        if (period === 'custom' && !(custom.from && custom.to)) {
+          var r = range('30'); custom = { from: ymdLocal(r[0]), to: ymdLocal(r[1]) };
+        }
+        savePeriod(); dashboard();
+      };
+    });
+    var go = view.querySelector('[data-range-go]');
+    if (go) go.onclick = function () {
+      var f = view.querySelector('#range-from').value, t = view.querySelector('#range-to').value;
+      if (!f || !t || t < f) { shopify.toast.show('בחרו תאריך התחלה ותאריך סיום שאחריו', { isError: true }); return; }
+      custom = { from: f, to: t }; period = 'custom'; savePeriod(); dashboard();
+    };
   }
   function when(d) {
     var x = new Date(d), today = new Date(); today.setHours(0, 0, 0, 0);
@@ -869,8 +933,14 @@
     };
   }
 
-  // ---------- campaigns (bonus points for a period, like Rivo) ----------
-  var camps = [];
+  // ---------- campaigns: what members get for a period, and telling them about it ----------
+  var camps = [], kit = null, openNotify = null, campDirty = false;
+  var CTYPES = [
+    { id: 'multiplier', icon: '✖️', title: 'פי כמה נקודות', about: 'כל קנייה מזכה בפי 2 או פי 3 נקודות.' },
+    { id: 'bonus', icon: '➕', title: 'עוד כסף על הקנייה', about: 'סכום קבוע נוסף, למשל +20 ₪ בהזמנה מעל 200 ₪.' },
+    { id: 'free_shipping', icon: '🚚', title: 'משלוח חינם', about: 'משלוח חינם לחברי המועדון, עם או בלי מינימום.' },
+    { id: 'gift', icon: '🎁', title: 'מתנה בקנייה', about: 'מוצר במתנה בהזמנה מעל סכום שתבחרו.' }
+  ];
   function isoLocal(d) { var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); }
   async function campaignsView() {
     view.innerHTML = '<p class="muted">טוען…</p>';
@@ -878,56 +948,170 @@
     var r = await api('campaigns');
     if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
-    camps = r.campaigns || [];
+    camps = r.campaigns || []; campDirty = false; openNotify = null;
     renderCampaigns();
+    api('campaign_kit').then(function (k) { if (k.ok) { kit = k; if (openNotify) renderCampaigns(); } });
   }
   function campState(c) {
-    var now = Date.now(), s = new Date(c.starts_at), e = new Date(c.ends_at);
+    var now = Date.now(), st = new Date(c.starts_at), e = new Date(c.ends_at);
     if (c.enabled === false) return '<span class="camp__state">כבוי</span>';
     if (e <= now) return '<span class="camp__state">הסתיים</span>';
-    if (s <= now) return '<span class="camp__state on">פעיל עכשיו</span>';
+    if (st <= now) return '<span class="camp__state on">פעיל עכשיו</span>';
     return '<span class="camp__state">מתחיל ' + day(c.starts_at) + '</span>';
   }
+  function cText(c) {
+    var over = c.min_order ? ' בהזמנה מעל ' + c.min_order + ' ₪' : '';
+    if (c.type === 'bonus') return '+' + c.bonus + ' ₪ לחברי המועדון' + over;
+    if (c.type === 'free_shipping') return 'משלוח חינם לחברי המועדון' + over;
+    if (c.type === 'gift') return 'מתנה לחברי המועדון' + (c.gift_title ? ': ' + c.gift_title : '') + over;
+    return 'פי ' + c.multiplier + ' נקודות על כל קנייה';
+  }
   function nextWeekday(dow, hour) { var d = new Date(); d.setHours(hour, 0, 0, 0); while (d.getDay() !== dow || d < new Date()) d.setDate(d.getDate() + 1); return d; }
-  function renderCampaigns() {
-    var presets = [
-      { label: 'סופ״ש פי 2', make: function () { var s = nextWeekday(4, 18); var e = new Date(s); e.setDate(e.getDate() + 3); e.setHours(23, 59); return { name: 'סופ״ש נקודות כפולות', multiplier: 2, starts_at: s, ends_at: e }; } },
-      { label: 'בלאק נובמבר פי 2', make: function () { return { name: 'בלאק נובמבר', multiplier: 2, starts_at: new Date('2026-11-01T00:00:00+02:00'), ends_at: new Date('2026-11-30T23:59:00+02:00') }; } },
-      { label: '24 שעות פי 3', make: function () { var s = new Date(); s.setMinutes(0, 0, 0); s.setHours(s.getHours() + 1); var e = new Date(s.getTime() + 86400000); return { name: 'מבצע בזק פי 3', multiplier: 3, starts_at: s, ends_at: e }; } }
-    ];
+  function newCampaign(type) {
+    var s0 = nextWeekday(4, 18), e0 = new Date(s0); e0.setDate(e0.getDate() + 3); e0.setHours(23, 59, 0, 0);
+    var names = { multiplier: 'סופ״ש נקודות כפולות', bonus: 'בונוס על קנייה', free_shipping: 'משלוח חינם לחברים', gift: 'מתנה בקנייה' };
+    return { name: names[type], type: type, multiplier: 2, bonus: 20, min_order: type === 'multiplier' ? 0 : 200, gift_variant_id: null, gift_title: null,
+      starts_at: s0.toISOString(), ends_at: e0.toISOString(), enabled: true };
+  }
+  function field(i, k, label, html) { return '<label class="cf"><span>' + label + '</span>' + html + '</label>'; }
+  function campCard(c, i) {
+    var t = CTYPES.filter(function (x) { return x.id === (c.type || 'multiplier'); })[0];
+    var typeFields = '';
+    if (c.type === 'multiplier' || !c.type) typeFields = field(i, 'multiplier', 'פי כמה', '<select data-i="' + i + '" data-k="multiplier">' + [1.5, 2, 2.5, 3, 4, 5].map(function (m) { return '<option value="' + m + '"' + (Number(c.multiplier) === m ? ' selected' : '') + '>×' + m + '</option>'; }).join('') + '</select>');
+    if (c.type === 'bonus') typeFields = field(i, 'bonus', 'כמה בנוסף (₪)', '<input type="number" min="1" data-i="' + i + '" data-k="bonus" value="' + esc(c.bonus) + '">');
+    if (c.type === 'gift') typeFields = field(i, 'gift', 'המוצר במתנה', '<button class="tab giftpick" data-gift="' + i + '">' + (c.gift_title ? '🎁 ' + esc(c.gift_title) + ' · החלפה' : 'בחירת מוצר…') + '</button>');
+    var minField = c.type === 'multiplier' || !c.type ? '' : field(i, 'min_order', 'בהזמנה מעל (₪, 0 = כל הזמנה)', '<input type="number" min="0" data-i="' + i + '" data-k="min_order" value="' + esc(c.min_order) + '">');
+    var notify = openNotify === i ? notifyPanel(c, i) : '';
+    return '<div class="card ccard"><div class="ccard__head"><span class="ctype">' + t.icon + ' ' + t.title + '</span>' + campState(c) +
+        '<button class="link" data-del="' + i + '">מחיקה</button></div>' +
+      '<div class="cfields">' + field(i, 'name', 'שם המבצע (מופיע ללקוחות)', '<input type="text" maxlength="40" data-i="' + i + '" data-k="name" value="' + esc(c.name) + '">') +
+        typeFields + minField +
+        field(i, 'starts_at', 'מתחיל', '<input type="datetime-local" data-i="' + i + '" data-k="starts_at" value="' + isoLocal(c.starts_at) + '">') +
+        field(i, 'ends_at', 'נגמר', '<input type="datetime-local" data-i="' + i + '" data-k="ends_at" value="' + isoLocal(c.ends_at) + '">') + '</div>' +
+      '<div class="ccard__foot"><span class="cline">ללקוחות יופיע: <b>' + esc(c.name) + ' · ' + esc(cText(c)) + '</b></span>' +
+        '<button class="primary" data-notify="' + i + '">📣 להודיע ללקוחות</button></div>' + notify + '</div>';
+  }
+  function shortDate(d) { var x = new Date(d); return x.getDate() + '.' + (x.getMonth() + 1); }
+  function notifyPanel(c, i) {
+    if (campDirty || !c.id) return '<div class="npanel"><p class="err">קודם שמרו את המבצע, ואז אפשר להודיע עליו.</p></div>';
+    if (!kit) return '<div class="npanel"><p class="muted">טוען…</p></div>';
+    var store = (kit.store && kit.store.url) || '';
+    var subject = c.name + ': ' + cText(c);
+    var body = 'שלום,\n\nלחברי המועדון שלנו יש מבצע: ' + cText(c) + '.\nהמבצע בתוקף עד ' + new Date(c.ends_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' }) + '.\n\nלקנייה: ' + store + '\n\nתודה שאתם איתנו 💚';
+    var sms = c.name + ': ' + cText(c) + ' עד ' + shortDate(c.ends_at) + ' ' + store.replace(/^https?:\/\/(www\.)?/, '');
+    var seg = kit.segment ? kit.segment.name : 'חברי המועדון';
+    var block = function (n, title, inner) { return '<div class="nstep"><b><span class="dnum">' + n + '</span>' + title + '</b>' + inner + '</div>'; };
+    var copyArea = function (id, val, rows) { return '<textarea id="' + id + '" rows="' + rows + '">' + esc(val) + '</textarea><button class="tab" data-copy-from="' + id + '">העתקה</button>'; };
+    var n = 1, out = '';
+    out += block(n++, 'באתר', '<p class="muted">✓ כבר מופיע לבד: פס בדף המועדון, הודעה בעגלה ובדף המוצר, מהרגע שהמבצע מתחיל.</p>');
+    out += block(n++, 'מייל ב-Shopify Messaging', '<p class="muted">פותחים מייל חדש, בוחרים את הקהל <b>"' + esc(seg) + '"</b> (' + num(kit.members) + ' חברים) ומדביקים:</p>' +
+      '<label class="cf"><span>נושא</span></label>' + copyArea('n-subj-' + i, subject, 1) +
+      '<label class="cf"><span>תוכן</span></label>' + copyArea('n-body-' + i, body, 7) +
+      '<a class="primary btnlink" href="' + esc(kit.messaging_url) + '" target="_top">פתיחת Shopify Messaging ←</a>');
+    out += block(n++, 'SMS', '<p class="muted">עד 70 תווים נשלח כהודעה אחת (זול יותר).</p>' + copyArea('n-sms-' + i, sms, 2) +
+      '<span class="cnt" data-sms-count="' + i + '">' + sms.length + ' / 70</span>');
+    if (kit.tools && kit.tools.length) {
+      out += block(n++, 'כלי המייל המחוברים', '<p class="muted">שולח לכל ' + num(kit.members) + ' החברים את האירוע "Club Campaign" ל-' + kit.tools.join(', ') +
+        '. שם בונים זרימה שנשלחת כשמגיע האירוע.</p><button class="primary" data-tools="' + i + '">שליחה ל-' + num(kit.members) + ' חברים</button>');
+    } else {
+      out += block(n++, 'Klaviyo, Flashy ועוד', '<p class="muted">מחברים כלי מייל בהגדרות ← חיבורים, ואז אפשר לשלוח את המבצע לכל החברים בלחיצה.</p>');
+    }
+    if (kit.telegram) {
+      out += block(n++, 'ערוץ הטלגרם', copyArea('n-tg-' + i, '🔥 ' + subject + '\nעד ' + shortDate(c.ends_at) + '\n' + store, 3) +
+        '<button class="primary" data-tg="' + i + '">פרסום בערוץ</button>');
+    }
+    return '<div class="npanel">' + out + '</div>';
+  }
+  function renderCampaigns(chooser) {
+    var y = window.scrollY;
     view.innerHTML =
-      '<p class="muted" style="margin-top:0">בתקופת מבצע, חברי המועדון מקבלים פי כמה נקודות על כל קנייה. המבצע מופיע לבד בדף המוצר, בעגלה ובדף המועדון. ' +
-      'הנקודות הנוספות נרשמות בנפרד ומתבטלות עם החזרה או ביטול של ההזמנה.</p>' +
-      '<div class="presets"><span class="muted" style="align-self:center">התחלה מהירה:</span>' + presets.map(function (p, i) { return '<button class="tab" data-preset="' + i + '">' + p.label + '</button>'; }).join('') + '</div>' +
-      '<div class="camp">' + (camps.length ? camps.map(function (c, i) {
-        return '<div class="card"><div class="camp__row">' +
-          '<label>שם המבצע (מופיע ללקוחות)<input type="text" maxlength="40" data-i="' + i + '" data-k="name" value="' + esc(c.name) + '"></label>' +
-          '<label>פי כמה<select data-i="' + i + '" data-k="multiplier">' + [1.5, 2, 2.5, 3, 4, 5].map(function (m) { return '<option value="' + m + '"' + (Number(c.multiplier) === m ? ' selected' : '') + '>×' + m + '</option>'; }).join('') + '</select></label>' +
-          '<label>התחלה<input type="datetime-local" data-i="' + i + '" data-k="starts_at" value="' + isoLocal(c.starts_at) + '"></label>' +
-          '<label>סיום<input type="datetime-local" data-i="' + i + '" data-k="ends_at" value="' + isoLocal(c.ends_at) + '"></label>' +
-          '<div style="display:flex;gap:8px;align-items:center">' + campState(c) + '<button class="link" data-del="' + i + '">מחיקה</button></div>' +
-        '</div></div>';
-      }).join('') : '<div class="card muted">אין מבצעים. בחרו התחלה מהירה או הוסיפו מבצע.</div>') + '</div>' +
-      '<div class="savebar"><button class="tab" data-add>+ מבצע חדש</button><button class="primary" data-save-camps>שמירה</button></div>';
-    view.querySelectorAll('[data-preset]').forEach(function (b) {
-      b.onclick = function () { var p = presets[Number(b.getAttribute('data-preset'))].make(); p.enabled = true; camps.push(p); renderCampaigns(); };
+      '<p class="muted" style="margin-top:0">מבצע לתקופה לחברי המועדון. הוא מופיע לבד באתר, ובכפתור "להודיע ללקוחות" יש טקסט מוכן למייל, ל-SMS ולטלגרם.</p>' +
+      (chooser || !camps.length
+        ? '<div class="card"><h3 style="margin:0 0 10px">איזה מבצע?</h3><div class="ctypes">' + CTYPES.map(function (t) {
+            return '<button class="ctypeopt" data-new="' + t.id + '"><span class="ctypeopt__i">' + t.icon + '</span><b>' + t.title + '</b><span>' + t.about + '</span></button>';
+          }).join('') + '</div>' +
+          '<p class="hint" style="margin:12px 0 0">התחלה מהירה: <button class="link" data-quick="bf">בלאק נובמבר פי 2</button> · <button class="link" data-quick="ship">משלוח חינם לסופ״ש</button></p></div>'
+        : '') +
+      '<div class="camp">' + camps.map(campCard).join('') + '</div>' +
+      '<div class="savebar">' + (camps.length && !chooser ? '<button class="tab" data-add>+ מבצע חדש</button>' : '') +
+        '<button class="primary" data-save-camps ' + (campDirty ? '' : 'disabled') + '>שמירה</button>' +
+        (campDirty ? '<span class="muted">יש שינויים שלא נשמרו</span>' : '') + '</div>';
+    window.scrollTo(0, y);
+    bindCampaigns();
+  }
+  function bindCampaigns() {
+    var dirty = function () { campDirty = true; };
+    view.querySelectorAll('[data-new]').forEach(function (b) { b.onclick = function () { camps.unshift(newCampaign(b.getAttribute('data-new'))); dirty(); openNotify = null; renderCampaigns(); }; });
+    view.querySelectorAll('[data-quick]').forEach(function (b) {
+      b.onclick = function () {
+        var c = b.getAttribute('data-quick') === 'bf'
+          ? Object.assign(newCampaign('multiplier'), { name: 'בלאק נובמבר', starts_at: new Date('2026-11-01T00:00:00+02:00').toISOString(), ends_at: new Date('2026-11-30T23:59:00+02:00').toISOString() })
+          : Object.assign(newCampaign('free_shipping'), { name: 'סופ״ש משלוח חינם', min_order: 0 });
+        camps.unshift(c); dirty(); renderCampaigns();
+      };
     });
-    view.querySelector('[data-add]').onclick = function () {
-      var s = new Date(); s.setMinutes(0, 0, 0); s.setHours(s.getHours() + 1);
-      camps.push({ name: 'מבצע נקודות', multiplier: 2, starts_at: s, ends_at: new Date(s.getTime() + 3 * 86400000), enabled: true });
-      renderCampaigns();
-    };
-    view.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { camps.splice(Number(b.getAttribute('data-del')), 1); renderCampaigns(); }; });
+    var add = view.querySelector('[data-add]'); if (add) add.onclick = function () { renderCampaigns(true); };
+    view.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { camps.splice(Number(b.getAttribute('data-del')), 1); dirty(); openNotify = null; renderCampaigns(); }; });
     view.querySelectorAll('[data-k]').forEach(function (el) {
       el.onchange = function () {
         var c = camps[Number(el.getAttribute('data-i'))], k = el.getAttribute('data-k');
-        c[k] = k === 'multiplier' ? Number(el.value) : (k === 'starts_at' || k === 'ends_at') ? new Date(el.value).toISOString() : el.value;
+        c[k] = (k === 'multiplier' || k === 'bonus' || k === 'min_order') ? Number(el.value) : (k === 'starts_at' || k === 'ends_at') ? new Date(el.value).toISOString() : el.value;
+        dirty(); renderCampaigns();
       };
     });
-    view.querySelector('[data-save-camps]').onclick = async function () {
+    view.querySelectorAll('[data-gift]').forEach(function (b) {
+      b.onclick = async function () {
+        var c = camps[Number(b.getAttribute('data-gift'))];
+        try {
+          var sel = await shopify.resourcePicker({ type: 'variant', action: 'select', multiple: false });
+          if (!sel || !sel.length) return;
+          var v = sel[0];
+          c.gift_variant_id = v.id;
+          c.gift_title = (v.product && v.product.title ? v.product.title : v.displayName || v.title || 'מתנה') + (v.title && v.product && v.title !== 'Default Title' ? ' · ' + v.title : '');
+          dirty(); renderCampaigns();
+        } catch (e) { shopify.toast.show('לא הצלחנו לפתוח את בחירת המוצרים', { isError: true }); }
+      };
+    });
+    view.querySelectorAll('[data-notify]').forEach(function (b) {
+      b.onclick = function () { var i = Number(b.getAttribute('data-notify')); openNotify = openNotify === i ? null : i; renderCampaigns(); };
+    });
+    view.querySelectorAll('[data-copy-from]').forEach(function (b) {
+      b.onclick = function () {
+        var ta = view.querySelector('#' + b.getAttribute('data-copy-from'));
+        (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject()).then(function () { shopify.toast.show('הועתק'); },
+          function () { ta.select(); shopify.toast.show('סמנו והעתיקו (Ctrl+C)'); });
+      };
+    });
+    view.querySelectorAll('[data-sms-count]').forEach(function (cnt) {
+      var ta = view.querySelector('#n-sms-' + cnt.getAttribute('data-sms-count'));
+      ta.addEventListener('input', function () { cnt.textContent = ta.value.length + ' / 70'; cnt.classList.toggle('over', ta.value.length > 70); });
+    });
+    view.querySelectorAll('[data-tools]').forEach(function (b) {
+      b.onclick = async function () {
+        var c = camps[Number(b.getAttribute('data-tools'))];
+        if (!confirm('לשלוח את המבצע "' + c.name + '" ל-' + kit.members + ' חברים דרך ' + kit.tools.join(', ') + '?')) return;
+        b.disabled = true;
+        var r = await api('campaign_notify', {}, { id: c.id, channel: 'tools' });
+        b.disabled = false;
+        shopify.toast.show(r.ok ? 'נשלח ל-' + r.sent + ' חברים' : (r.message || 'שגיאה'), r.ok ? undefined : { isError: true });
+      };
+    });
+    view.querySelectorAll('[data-tg]').forEach(function (b) {
+      b.onclick = async function () {
+        var i = Number(b.getAttribute('data-tg')), c = camps[i], text = view.querySelector('#n-tg-' + i).value;
+        if (!confirm('לפרסם בערוץ הטלגרם?')) return;
+        b.disabled = true;
+        var r = await api('campaign_notify', {}, { id: c.id, channel: 'telegram', text: text });
+        b.disabled = false;
+        shopify.toast.show(r.ok ? 'פורסם בערוץ' : (r.message || 'שגיאה'), r.ok ? undefined : { isError: true });
+      };
+    });
+    var save = view.querySelector('[data-save-camps]');
+    save.onclick = async function () {
+      save.disabled = true; save.textContent = 'שומר…';
       var r = await api('campaigns', {}, { campaigns: camps });
-      if (!r.ok) { shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
-      camps = r.campaigns;
+      if (!r.ok) { save.disabled = false; save.textContent = 'שמירה'; shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
+      camps = r.campaigns; campDirty = false;
       shopify.toast.show(r.warning || 'המבצעים נשמרו', r.warning ? { isError: true } : undefined);
       renderCampaigns();
     };
@@ -1025,6 +1209,9 @@
         step(1, 'הצבע של המועדון', '<div class="swatches">' + SWATCHES.map(function (c) {
             return '<button class="swatch' + (b.primary === c ? ' on' : '') + '" style="background:' + c + '" data-sw="' + c + '" aria-label="צבע ' + c + '"></button>'; }).join('') +
           '<label class="swatch swatch--custom" title="צבע אחר"><input type="color" data-b="primary" value="' + esc(b.primary) + '" aria-label="צבע אחר">+</label></div>' +
+          '<div class="hexrow"><label for="hex-in">קוד צבע</label><span class="hexchip" style="background:' + esc(b.primary) + '"></span>' +
+          '<input id="hex-in" class="hexin" type="text" dir="ltr" maxlength="7" spellcheck="false" value="' + esc(b.primary) + '" data-hex placeholder="#47792b">' +
+          '<span class="hint" data-hex-msg>למשל הצבע של הלוגו שלכם</span></div>' +
           '<p class="hint" style="margin:8px 0 0">צבע הכיתוב על הכפתורים נבחר לבד כך שיהיה קריא.</p>') +
         step(2, 'איפה יהיה הכפתור הצף?', '<div class="posopts">' + posThumb('right', 'למטה בצד ימין') + posThumb('left', 'למטה בצד שמאל') + '</div>',
           ' data-focus="position"') +
@@ -1049,6 +1236,19 @@
   function setBrand(k, v) { brand[k] = v; if (k === 'primary') brand.primary_text = textOn(v); var y = window.scrollY; renderDesign(); window.scrollTo(0, y); }
   function bindDesign() {
     view.querySelectorAll('[data-sw]').forEach(function (el) { el.onclick = function () { setBrand('primary', el.getAttribute('data-sw')); }; });
+    var hex = view.querySelector('[data-hex]');
+    if (hex) {
+      var applyHex = function () {
+        var v = hex.value.trim();
+        if (/^[0-9a-fA-F]{6}$/.test(v)) v = '#' + v;
+        if (/^#[0-9a-fA-F]{3}$/.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+        if (/^#[0-9a-fA-F]{6}$/.test(v)) { setBrand('primary', v.toLowerCase()); var again = view.querySelector('[data-hex]'); if (again) { again.focus(); again.setSelectionRange(7, 7); } }
+        else view.querySelector('[data-hex-msg]').textContent = 'קוד צבע מתחיל ב-# ואחריו 6 תווים, למשל #47792b';
+      };
+      hex.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyHex(); });
+      hex.addEventListener('blur', applyHex);
+      hex.addEventListener('input', function () { if (/^#?[0-9a-fA-F]{6}$/.test(hex.value.trim())) applyHex(); });
+    }
     view.querySelectorAll('[data-ic]').forEach(function (el) { el.onclick = function () { PV.hl = 'show_launcher'; setBrand('launcher_icon', el.getAttribute('data-ic')); }; });
     view.querySelectorAll('[data-pos]').forEach(function (el) { el.onclick = function () { PV.hl = 'position'; PV.page = 'home'; setBrand('position', el.getAttribute('data-pos')); }; });
     view.querySelectorAll('[data-corner]').forEach(function (el) { el.onclick = function () { PV.page = 'cart'; PV.hl = null; setBrand('corner', Number(el.getAttribute('data-corner'))); }; });

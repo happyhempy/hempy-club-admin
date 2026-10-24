@@ -39,7 +39,7 @@
   th { background: #faf9f6; font-size: 12px; color: var(--muted); font-weight: 700; }
   tr.row { cursor: pointer; } tr.row:hover td { background: #faf9f6; }
   .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: var(--soft); }
-  .pill.bronze { background: #f4e6dc; color: #8a5330; } .pill.silver { background: #e9eef1; color: #55636b; } .pill.gold { background: #f6efd6; color: #8a6c12; }
+  .pill.bronze { background: #f4e6dc; color: #8a5330; } .pill.silver { background: #e9eef1; color: #55636b; } .pill.gold { background: #f6efd6; color: #8a6c12; } .pill.platinum { background: #e8e6f3; color: #4b3f8f; }
   .pill.wait { background: #eee; color: var(--muted); }
   input, select { font: inherit; padding: 9px 12px; border: 1px solid #cfccc3; border-radius: 8px; background: #fff; }
   .search { width: 100%; max-width: 420px; }
@@ -169,7 +169,7 @@
 (function () {
   var API = 'https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin';
   var STORE = 'https://admin.shopify.com/store/happy-hempy';
-  var TIER = { bronze: 'ארד', silver: 'כסף', gold: 'זהב' };
+  var TIER = { bronze: 'ארד', silver: 'כסף', gold: 'זהב', platinum: 'פלטינה' };
   var REASON = { join_bonus: 'מתנת הצטרפות', order_earn: 'קנייה', second_order_bonus: 'בונוס קנייה שנייה', tier_upgrade_bonus: 'מתנת דרגה',
     refund: 'החזרה', cancel: 'ביטול', redemption: 'מימוש', redemption_restored: 'קוד שלא נוצל', expiry: 'פג תוקף', manual_adjust: 'עדכון ידני',
     profile_bonus: 'השלמת פרופיל', review: 'ביקורת', referral: 'חבר מביא חבר', instagram: 'אינסטגרם' };
@@ -280,7 +280,7 @@
       '<div class="strip">' +
         '<span>יתרות פתוחות של חברים: <b>' + nis(t.balance_members) + '</b></span>' +
         '<span>קודים פעילים: <b>' + num(t.codes_active) + '</b></span>' +
-        '<span>דרגות: <b>' + num(tiers.bronze || 0) + '</b> ארד · <b>' + num(tiers.silver || 0) + '</b> כסף · <b>' + num(tiers.gold || 0) + '</b> זהב</span>' +
+        '<span>דרגות: <b>' + num(tiers.bronze || 0) + '</b> ארד · <b>' + num(tiers.silver || 0) + '</b> כסף · <b>' + num(tiers.gold || 0) + '</b> זהב' + (tiers.platinum ? ' · <b>' + num(tiers.platinum) + '</b> פלטינה' : '') + '</span>' +
         '<span>אחוז מימוש: <b>' + rate + '%</b></span>' +
       '</div>' +
       '<div class="potential"><b>💡 פוטנציאל:</b> ' + num(t.pending_buyers) + ' לקוחות מהעבר עוד לא הצטרפו, ויש להם ' + nis(t.balance_pending) + ' בנקודות שמחכות. כל אחד מהם הוא סיבה לקמפיין.</div>';
@@ -451,6 +451,9 @@
   function get(path) { var v = prog; path.split('.').forEach(function (k) { v = v == null ? v : v[k]; }); return v; }
   function setv(path, val) { var ks = path.split('.'), o = prog; ks.slice(0, -1).forEach(function (k) { o = o[k] = o[k] || {}; }); o[ks[ks.length - 1]] = val; }
   function u(n) { return prog.currency.mode === 'cashback' ? num(n) + ' ₪' : num(n) + ' ' + esc(prog.currency.name); }
+  var ALL_TIERS = ['bronze', 'silver', 'gold', 'platinum'];
+  var MEDAL = { bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎' };
+  function activeT() { return prog.tiers.enabled ? ALL_TIERS.slice(0, prog.tiers.count || 3) : ['bronze']; }
   function inp(path, label, opts) {
     opts = opts || {};
     return '<label class="f">' + label + '<input type="number" ' + (opts.step ? 'step="' + opts.step + '"' : 'step="1"') + ' min="' + (opts.min == null ? 0 : opts.min) + '" data-p="' + path + '" value="' + esc(get(path)) + '"' + (opts.cls ? ' class="' + opts.cls + '"' : '') + '></label>';
@@ -466,18 +469,19 @@
     var val = p.currency.mode === 'cashback' ? 'כל נקודה = 1 ₪' : Math.round(1 / p.currency.point_value) + ' ' + esc(p.currency.name) + ' = 1 ₪';
     out.push('<li><b>מטבע:</b> ' + val + '</li>');
     var pct = function (t) { return Math.round(p.earn.per_100[t] * p.currency.point_value * 10) / 10; };
+    var at = activeT(), top = at[at.length - 1];
     out.push('<li><b>על כל 100 ₪:</b> ' + (p.tiers.enabled
-      ? esc(T.bronze) + ' ' + u(p.earn.per_100.bronze) + ' · ' + esc(T.silver) + ' ' + u(p.earn.per_100.silver) + ' · ' + esc(T.gold) + ' ' + u(p.earn.per_100.gold) +
-        ' <span class="muted">(' + pct('bronze') + '%–' + pct('gold') + '% חוזר ללקוח)</span>'
+      ? at.map(function (t) { return esc(T[t]) + ' ' + u(p.earn.per_100[t]); }).join(' · ') +
+        ' <span class="muted">(' + pct('bronze') + '%–' + pct(top) + '% חוזר ללקוח)</span>'
       : u(p.earn.per_100.bronze) + ' <span class="muted">(' + pct('bronze') + '% חוזר ללקוח)</span>') + '</li>');
     if (p.join_gift.amount) out.push('<li><b>מתנת הצטרפות:</b> ' + u(p.join_gift.amount) + (p.join_gift.valid_days ? ' לתוקף ' + p.join_gift.valid_days + ' יום' : ' בלי תוקף') + '</li>');
     if (p.second_order.enabled) out.push('<li><b>קנייה שנייה</b> תוך ' + p.second_order.days + ' יום: פי ' + p.second_order.multiplier + '</li>');
     out.push('<li><b>מימוש:</b> מ-' + u(p.redeem.min_points) + ', עד ' + p.redeem.max_share + '% מההזמנה, קוד בתוקף ' + p.redeem.code_days + ' יום</li>');
     if (p.tiers.enabled) {
       var when = function (t) { return [p.tiers[t].orders ? p.tiers[t].orders + ' קניות' : '', p.tiers[t].amount ? p.tiers[t].amount + ' ₪' : ''].filter(Boolean).join(' או '); };
-      out.push('<li><b>דרגות</b> (12 חודשים אחרונים): ' + esc(T.silver) + ' מ-' + when('silver') + ' · ' + esc(T.gold) + ' מ-' + when('gold') + '</li>');
+      out.push('<li><b>' + at.length + ' דרגות</b> (12 חודשים אחרונים): ' + at.slice(1).map(function (t) { return esc(T[t]) + ' מ-' + when(t); }).join(' · ') + '</li>');
     } else out.push('<li><b>בלי דרגות</b></li>');
-    if (p.birthday.enabled) out.push('<li><b>יום הולדת:</b> ' + (p.tiers.enabled ? p.birthday.percent.bronze + '% / ' + p.birthday.percent.silver + '% / ' + p.birthday.percent.gold + '%' : p.birthday.percent.bronze + '%') + ' הנחה</li>');
+    if (p.birthday.enabled) out.push('<li><b>יום הולדת:</b> ' + at.map(function (t) { return p.birthday.percent[t] + '%'; }).join(' / ') + ' הנחה</li>');
     if (p.referral.enabled) out.push('<li><b>חבר מביא חבר:</b> החבר מקבל ' + u(p.join_gift.amount + p.referral.friend_bonus) + ', המזמין ' + u(p.referral.referrer_reward) + (p.referral.min_order ? ' (בקנייה מעל ' + p.referral.min_order + ' ₪)' : '') + '</li>');
     if (p.instagram.enabled) out.push('<li><b>אינסטגרם:</b> ' + u(p.instagram.amount) + ' פעם אחת</li>');
     out.push('<li><b>תפוגה:</b> ' + (p.expiry.months ? 'אחרי ' + p.expiry.months + ' חודשים בלי קנייה' : 'לא פגות') + '</li>');
@@ -485,8 +489,8 @@
   }
   function tierTable() {
     var p = prog, rows = '<div class="tierrow head"><span></span><span>שם</span><span>על כל 100 ₪</span><span>תנאי: קניות בשנה</span><span>תנאי: ₪ בשנה</span><span>מתנת עלייה</span></div>';
-    ['bronze', 'silver', 'gold'].forEach(function (t) {
-      rows += '<div class="tierrow"><b>' + { bronze: '🥉', silver: '🥈', gold: '🥇' }[t] + '</b>' +
+    activeT().forEach(function (t) {
+      rows += '<div class="tierrow"><b>' + MEDAL[t] + '</b>' +
         '<input type="text" maxlength="15" data-p="tiers.names.' + t + '" data-t="text" value="' + esc(p.tiers.names[t]) + '">' +
         '<input type="number" min="0" step="any" data-p="earn.per_100.' + t + '" value="' + esc(p.earn.per_100[t]) + '">' +
         (t === 'bronze' ? '<span class="muted">מההצטרפות</span><span></span><span></span>'
@@ -494,8 +498,13 @@
             '<input type="number" min="0" data-p="tiers.' + t + '.amount" value="' + esc(p.tiers[t].amount) + '">' +
             '<input type="number" min="0" data-p="tiers.' + t + '.bonus" value="' + esc(p.tiers[t].bonus) + '">') + '</div>';
     });
+    var count = '<div class="fields" style="margin-bottom:12px"><span class="tg">כמה דרגות?</span>' + [3, 4].map(function (n) {
+      return '<label class="tg"><input type="radio" name="tcount" data-p="tiers.count" data-t="count" value="' + n + '"' + ((p.tiers.count || 3) === n ? ' checked' : '') + '> ' + n + ' דרגות' +
+        (n === 3 ? ' <span class="muted">(ארד · כסף · זהב)</span>' : ' <span class="muted">(+ ' + esc(p.tiers.names.platinum || 'פלטינה') + ')</span>') + '</label>';
+    }).join('') + '</div>';
+    rows = count + rows;
     return rows + '<p class="hint" style="margin-top:8px">מספיק לעמוד באחד התנאים. 0 = התנאי לא בשימוש. נבדק על 12 החודשים האחרונים, ומי שלא עומד בתנאי שנה שלמה יורד דרגה.</p>' +
-      '<div class="fields"><span class="muted">משלוח חינם מעל (₪, 0 = בלי):</span>' + inp('tiers.free_shipping.silver', esc(p.tiers.names.silver)) + inp('tiers.free_shipping.gold', esc(p.tiers.names.gold)) +
+      '<div class="fields"><span class="muted">משלוח חינם מעל (₪, 0 = בלי, 1 = תמיד):</span>' + activeT().slice(1).map(function (t) { return inp('tiers.free_shipping.' + t, esc(p.tiers.names[t])); }).join('') +
       inp('tiers.free_shipping.bronze', esc(p.tiers.names.bronze) + ' (תצוגה בלבד)') + '</div>';
   }
   function renderProgram() {
@@ -516,7 +525,7 @@
       section('בונוס קנייה שנייה', 'מעודד לקוח חדש לחזור (הקנייה השנייה היא הקשה ביותר).', '<div class="fields">' + inp('second_order.days', 'תוך כמה ימים', { min: 1 }) + inp('second_order.multiplier', 'פי כמה', { min: 1, step: 0.5 }) + '</div>', 'second_order.enabled') +
       section('מימוש', 'המימוש בעגלה, לא בשילוב קופון נוסף.', '<div class="fields">' + inp('redeem.min_points', 'מינימום למימוש', { min: 1 }) + inp('redeem.max_share', 'עד % מההזמנה', { min: 5 }) + inp('redeem.code_days', 'תוקף קוד (ימים)', { min: 1 }) + '</div>') +
       section('יום הולדת', 'הנחה באחוזים על קנייה אחת בחודש יום ההולדת.', '<div class="fields">' + inp('birthday.percent.bronze', esc(p.tiers.names.bronze) + ' %', { min: 1 }) +
-        (p.tiers.enabled ? inp('birthday.percent.silver', esc(p.tiers.names.silver) + ' %', { min: 1 }) + inp('birthday.percent.gold', esc(p.tiers.names.gold) + ' %', { min: 1 }) : '') + '</div>', 'birthday.enabled') +
+        activeT().slice(1).map(function (t) { return inp('birthday.percent.' + t, esc(p.tiers.names[t]) + ' %', { min: 1 }); }).join('') + '</div>', 'birthday.enabled') +
       section('חבר מביא חבר', 'החבר החדש מקבל בונוס על מתנת ההצטרפות, והמזמין מקבל כשהחבר קונה.', '<div class="fields">' + inp('referral.friend_bonus', 'בונוס לחבר') + inp('referral.referrer_reward', 'למזמין') + inp('referral.min_order', 'קנייה מינימלית (₪)') + '</div>', 'referral.enabled') +
       section('מעקב באינסטגרם', 'פעם אחת לכל חבר, לפי הלחיצה (כמו ב-Smile).', '<div class="fields">' + inp('instagram.amount', 'סכום') + '</div>', 'instagram.enabled') +
       section('תפוגה', 'כמו ב-Smile ו-LoyaltyLion: הנקודות פגות אחרי תקופה בלי קנייה. 0 = לא פגות.', '<div class="fields">' + inp('expiry.months', 'חודשים בלי קנייה') + '</div>') +
@@ -539,6 +548,7 @@
         if (t === 'bool') setv(path, el.checked);
         else if (t === 'text') setv(path, el.value);
         else if (t === 'perShekel') setv('currency.point_value', 1 / Math.max(1, Number(el.value) || 1));
+        else if (t === 'count') setv('tiers.count', Number(el.value) === 4 ? 4 : 3);
         else setv(path, Number(el.value));
         if (path === 'currency.mode') setv('currency.point_value', el.value === 'cashback' ? 1 : (prog.currency.point_value === 1 ? 0.05 : prog.currency.point_value));
         prog.template = 'custom';

@@ -107,6 +107,10 @@
   .savebar { position: sticky; bottom: 0; background: var(--cream); padding: 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 16px; }
   @media (max-width: 700px) { .pf .tierrow { grid-template-columns: 60px repeat(5, 1fr); font-size: 12px; } }
 
+  .ai-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .ai-ex span { background: var(--soft); border-radius: 99px; padding: 4px 12px; font-size: 13px; }
+  .ai-new { border-color: var(--green); background: #f6fbf2; display: grid; gap: 8px; }
+  .ai-steps { margin: 4px 0 0; padding-inline-start: 18px; } .ai-steps li { margin-bottom: 4px; }
   .subnav { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
   .rangebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: -4px 0 10px; }
   .rangebar label { font-weight: 700; font-size: 13px; }
@@ -756,13 +760,17 @@
   // ---------- settings ----------
   // Settings has two parts: general and the connections to other tools.
   function subnav(active) {
-    return '<div class="subnav" role="tablist">' + [['general', 'כללי'], ['connections', 'חיבורים לכלים אחרים']].map(function (x) {
+    return '<div class="subnav" role="tablist">' + [['general', 'כללי'], ['connections', 'חיבורים לכלים אחרים'], ['ai', 'חיבור ל-AI']].map(function (x) {
       return '<button class="chip' + (x[0] === active ? ' on' : '') + '" data-sub-s="' + x[0] + '">' + x[1] + '</button>';
     }).join('') + '</div>';
   }
   function bindSubnav() {
     view.querySelectorAll('[data-sub-s]').forEach(function (b) {
-      b.onclick = function () { viewSeq++; if (b.getAttribute('data-sub-s') === 'connections') connections(); else settings(); };
+      b.onclick = function () {
+        viewSeq++;
+        var k = b.getAttribute('data-sub-s');
+        if (k === 'connections') connections(); else if (k === 'ai') aiView(); else settings();
+      };
     });
   }
   async function settings() {
@@ -1307,6 +1315,66 @@
     pv.querySelectorAll('[data-pg]').forEach(function (el) { el.onclick = function () { PV.page = el.getAttribute('data-pg'); PV.hl = null; renderDesign(); }; });
     pv.querySelectorAll('[data-dev]').forEach(function (el) { el.onclick = function () { PV.device = el.getAttribute('data-dev'); renderDesign(); }; });
     pv.querySelectorAll('[data-pos]').forEach(function (el) { el.onclick = function () { PV.hl = 'position'; setBrand('position', el.getAttribute('data-pos')); }; });
+  }
+
+  // ---------- AI connection (MCP): talk to the club from Claude, ChatGPT and other AI tools ----------
+  var aiNewUrl = null;
+  async function aiView() {
+    view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
+    var r = await api('ai_connections');
+    if (mySeq !== viewSeq) return;
+    if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
+    renderAi(r.connections || []);
+  }
+  function renderAi(list) {
+    var examples = ['כמה הכניס המועדון בחודש האחרון לעומת החודש שלפני?', 'מי 10 הלקוחות הכי טובים שלא קנו כבר 3 חודשים?',
+      'תפתח משלוח חינם לחברים לסופ״ש ותנסח לי SMS', 'תוסיף 20 ₪ לדנה כהן, פיצוי על איחור במשלוח'];
+    view.innerHTML = subnav('ai') +
+      '<div class="card ai-hero"><h3 style="margin:0 0 6px">מדברים עם המועדון ב-Claude או ב-ChatGPT</h3>' +
+        '<p class="muted" style="margin:0">יוצרים קישור חיבור פרטי, מדביקים אותו בכלי ה-AI, ומשם אפשר לשאול על החברים והמכירות, לפתוח מבצעים ולנסח הודעות. ' +
+        'לפני כל שינוי (מבצע, עדכון יתרה) ה-AI מראה מה הוא עומד לעשות ומחכה לאישור שלכם, וכל פעולה נרשמת ביומן.</p>' +
+        '<div class="ai-ex">' + examples.map(function (e) { return '<span>"' + esc(e) + '"</span>'; }).join('') + '</div></div>' +
+      (aiNewUrl
+        ? '<div class="card ai-new"><b>הקישור נוצר. העתיקו אותו עכשיו, הוא לא יוצג שוב:</b>' +
+          '<div class="row-form"><input class="conn__key" readonly id="ai-url" value="' + esc(aiNewUrl) + '"><button class="primary" data-ai-copy>העתקה</button></div>' +
+          '<ol class="ai-steps"><li><b>ב-Claude:</b> הגדרות ← Connectors ← Add custom connector ← מדביקים את הקישור ← Add.</li>' +
+          '<li><b>ב-ChatGPT:</b> Settings ← Connectors ← Create (מצב מפתחים) ← מדביקים את הקישור.</li>' +
+          '<li>פותחים שיחה חדשה ושואלים, למשל: "כמה חברים הצטרפו השבוע?"</li></ol>' +
+          '<p class="hint">מי שמחזיק בקישור יכול לראות את נתוני המועדון, אז לא משתפים אותו. אפשר לבטל אותו כאן בכל רגע.</p></div>'
+        : '') +
+      '<div class="card"><h3 style="margin:0 0 10px">קישור חדש</h3><div class="row-form">' +
+        '<input type="text" id="ai-label" maxlength="40" placeholder="שם לחיבור, למשל: Claude של איתמר" style="flex:1;min-width:200px">' +
+        '<button class="primary" data-ai-create>יצירת קישור חיבור</button></div></div>' +
+      '<h2>חיבורים פעילים</h2>' +
+      (list.length
+        ? '<table><thead><tr><th>שם</th><th>נוצר</th><th>שימוש אחרון</th><th>קישור</th><th></th></tr></thead><tbody>' + list.map(function (c) {
+            return '<tr><td><b>' + esc(c.label) + '</b></td><td>' + day(c.created_at) + '</td><td>' + (c.last_used_at ? new Date(c.last_used_at).toLocaleString('he-IL') : 'עוד לא') +
+              '</td><td dir="ltr" style="text-align:right">…' + esc(c.token_hint) + '</td><td><button class="link" data-ai-revoke="' + esc(c.id) + '">ביטול</button></td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted card">אין עדיין חיבורים.</p>');
+    bindSubnav();
+    view.querySelector('[data-ai-create]').onclick = async function () {
+      var b = this; b.disabled = true;
+      var r = await api('ai_connection_create', {}, { label: view.querySelector('#ai-label').value });
+      b.disabled = false;
+      if (!r.ok) { shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
+      aiNewUrl = r.url; renderAi(r.connections); window.scrollTo(0, 0);
+    };
+    var cp = view.querySelector('[data-ai-copy]');
+    if (cp) cp.onclick = function () {
+      var el = view.querySelector('#ai-url');
+      (navigator.clipboard ? navigator.clipboard.writeText(el.value) : Promise.reject()).then(function () { shopify.toast.show('הועתק'); },
+        function () { el.select(); shopify.toast.show('סמנו והעתיקו (Ctrl+C)'); });
+    };
+    view.querySelectorAll('[data-ai-revoke]').forEach(function (b) {
+      b.onclick = async function () {
+        if (!confirm('לבטל את החיבור? כלי ה-AI שמשתמש בו יפסיק לקבל גישה מיד.')) return;
+        var r = await api('ai_connection_revoke', {}, { id: b.getAttribute('data-ai-revoke') });
+        if (!r.ok) { shopify.toast.show('שגיאה', { isError: true }); return; }
+        aiNewUrl = null; shopify.toast.show('החיבור בוטל'); renderAi(r.connections);
+      };
+    });
   }
 
   // ---------- connections ----------

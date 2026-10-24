@@ -201,6 +201,8 @@
     refund: 'החזרה', cancel: 'ביטול', redemption: 'מימוש', redemption_restored: 'קוד שלא נוצל', expiry: 'פג תוקף', manual_adjust: 'עדכון ידני',
     profile_bonus: 'השלמת פרופיל', review: 'ביקורת', referral: 'חבר מביא חבר', instagram: 'אינסטגרם' };
   var view = document.getElementById('view');
+  // Each screen change bumps viewSeq; a response that arrives after the owner moved on is ignored.
+  var viewSeq = 0;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function nis(n) { return Math.round(Number(n) || 0).toLocaleString('he-IL') + ' ₪'; }
@@ -271,7 +273,9 @@
     bindPeriods();
     var my = ++dashSeq;
     var rg = range(period);
+    var mySeq = viewSeq;
     var r = await api('stats', { from: rg[0].toISOString(), to: rg[1].toISOString() });
+    if (mySeq !== viewSeq) return;
     if (my !== dashSeq) return; // a newer period was picked while this one loaded
     if (!r.ok) { view.innerHTML = pills + '<p class="err">' + esc(r.message) + '</p>'; bindPeriods(); return; }
     var c = r.stats.current, p = r.stats.previous, t = r.stats.totals, tiers = t.tiers || {};
@@ -382,10 +386,12 @@
     var list = document.getElementById('list');
     if (!list) return;
     list.style.opacity = '.5';
+    var mySeq = viewSeq;
     var r = await api('members', { q: ML.q, status: ML.status, tier: ML.tier, sort: ML.sort, dir: ML.dir, offset: ML.offset, limit: ML.limit });
     list.style.opacity = '';
     if (!r.ok) { list.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     if (!tierNames) { var pr = await api('program'); if (pr.ok) tierNames = pr.program.tiers.names; }
+    if (mySeq !== viewSeq || !document.getElementById('list')) return;
     var tiers = r.tiers || {}, allN = Object.keys(tiers).reduce(function (a, k) { return a + tiers[k]; }, 0);
     view.querySelector('[data-chips]').innerHTML = ML.status === 'pending' ? '' :
       [''].concat(['bronze', 'silver', 'gold', 'platinum'].filter(function (t) { return tiers[t]; })).map(function (t) {
@@ -446,7 +452,9 @@
   async function memberDetail(id) {
     select('members', true);
     view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
     var r = await api('member', { id: id });
+    if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     if (r.tier_names) tierNames = r.tier_names;
     var m = r.member, st = r.stats || {}, sh = r.shopify;
@@ -567,7 +575,9 @@
   // ---------- settings ----------
   async function settings() {
     view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
     var r = await api('settings');
+    if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     var s = r.settings || {};
     view.innerHTML =
@@ -601,7 +611,9 @@
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   async function programView() {
     view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
     var r = await api('program');
+    if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     progTemplates = r.templates || [];
     prog = clone(r.program); progSaved = clone(r.program);
@@ -742,7 +754,9 @@
   };
   async function connections() {
     view.innerHTML = '<p class="muted">טוען…</p>';
+    var mySeq = viewSeq;
     var r = await api('integrations');
+    if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     renderConnections(r.integrations || []);
   }
@@ -813,6 +827,7 @@
 
   // ---------- tabs ----------
   function select(tab, silent) {
+    viewSeq++;
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === tab)); });
     if (silent) return;
     if (tab === 'dashboard') dashboard();

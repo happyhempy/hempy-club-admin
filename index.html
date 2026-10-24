@@ -56,6 +56,33 @@
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .rules li { margin-bottom: 4px; }
 
+  /* members */
+  .mbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .mbar .search { flex: 1; min-width: 220px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .chip.on { background: var(--green); color: #fff; border-color: var(--green); }
+  .msum { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .msum b { color: var(--ink); }
+  .tablewrap { overflow-x: auto; border-radius: 12px; }
+  .mtable { min-width: 860px; }
+  .mtable td { white-space: nowrap; }
+  .mtable .sub { color: var(--muted); font-size: 12px; font-weight: 400; }
+  button.sort { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 0; font-weight: 700; }
+  button.sort.on { color: var(--green-d); }
+  .pager { display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 10px; }
+  .cust__head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; }
+  .cust__head .tab { text-decoration: none; color: var(--ink); }
+  .cust__id { flex: 1; min-width: 220px; }
+  .cust__id h1 { font-size: 22px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cust__id p { margin: 2px 0; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0; }
+  .pb { margin-top: 10px; }
+  .pb__top { display: flex; justify-content: space-between; font-size: 13px; }
+  .pb__track { height: 8px; background: #eee; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+  .pb__track i { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+  @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } }
+
   /* program */
   .tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
   .tpl { text-align: right; background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 14px; font: inherit; cursor: pointer; }
@@ -323,26 +350,94 @@
   }
 
   // ---------- members ----------
-  var searchTimer;
+  var ML = { q: '', status: 'members', tier: '', sort: 'joined', dir: 'desc', offset: 0, limit: 50 };
+  var searchTimer, tierNames = null;
+  function tname(t) { return (tierNames && tierNames[t]) || TIER[t] || t; }
+  function tierPill2(t, joined) { return joined === false ? '<span class="pill wait">עוד לא הצטרף/ה</span>' : '<span class="pill ' + esc(t) + '">' + esc(tname(t)) + '</span>'; }
+  var COLS = [
+    { id: 'name', label: 'שם' }, { id: null, label: 'דרגה' }, { id: 'spent', label: 'סה״כ קניות' }, { id: 'orders', label: 'הזמנות' },
+    { id: 'spent_12m', label: '12 חודשים' }, { id: 'balance', label: 'יתרה' }, { id: 'redeemed', label: 'מומש' },
+    { id: 'last_order', label: 'קנייה אחרונה' }, { id: 'joined', label: 'הצטרפות' }
+  ];
   function membersView(q) {
-    view.innerHTML = '<input class="search" type="search" placeholder="חיפוש לפי שם, מייל או טלפון" value="' + esc(q || '') + '" autofocus>' +
-      '<p class="muted" style="margin:8px 0 12px">בלי חיפוש מוצגים חברי המועדון האחרונים. החיפוש כולל גם קונים שעוד לא הצטרפו.</p><div id="list"></div>';
-    var input = view.querySelector('input');
-    input.addEventListener('input', function () { clearTimeout(searchTimer); searchTimer = setTimeout(function () { loadMembers(input.value); }, 300); });
-    loadMembers(q || '');
+    if (q != null) ML.q = q;
+    view.innerHTML =
+      '<div class="mbar">' +
+        '<input class="search" type="search" placeholder="חיפוש לפי שם, מייל או טלפון" value="' + esc(ML.q) + '" data-q>' +
+        '<select data-status><option value="members">חברי מועדון</option><option value="pending">קנו ועוד לא הצטרפו</option><option value="all">כולם</option></select>' +
+        '<button class="tab" data-export>⬇ ייצוא לאקסל</button>' +
+      '</div>' +
+      '<div class="chips" data-chips></div>' +
+      '<div class="msum" data-sum></div>' +
+      '<div class="tablewrap" id="list"><p class="muted">טוען…</p></div>' +
+      '<div class="pager" data-pager></div>';
+    view.querySelector('[data-status]').value = ML.status;
+    var input = view.querySelector('[data-q]');
+    input.addEventListener('input', function () { clearTimeout(searchTimer); searchTimer = setTimeout(function () { ML.q = input.value; ML.offset = 0; loadMembers(); }, 300); });
+    view.querySelector('[data-status]').onchange = function (e) { ML.status = e.target.value; ML.tier = ''; ML.offset = 0; loadMembers(); };
+    view.querySelector('[data-export]').onclick = exportMembers;
+    loadMembers();
   }
-  async function loadMembers(q) {
+  async function loadMembers() {
     var list = document.getElementById('list');
-    list.innerHTML = '<p class="muted">טוען…</p>';
-    var r = await api('members', { q: q });
+    if (!list) return;
+    list.style.opacity = '.5';
+    var r = await api('members', { q: ML.q, status: ML.status, tier: ML.tier, sort: ML.sort, dir: ML.dir, offset: ML.offset, limit: ML.limit });
+    list.style.opacity = '';
     if (!r.ok) { list.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
-    if (!r.members.length) { list.innerHTML = '<p class="muted">לא נמצאו תוצאות.</p>'; return; }
-    list.innerHTML = '<table><thead><tr><th>שם</th><th>מייל</th><th>טלפון</th><th>סטטוס</th><th>יתרה</th><th>קנייה אחרונה</th></tr></thead><tbody>' +
-      r.members.map(function (m) {
-        return '<tr class="row" data-id="' + esc(m.id) + '"><td>' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</td><td>' + esc(m.email || '') +
-          '</td><td dir="ltr" style="text-align:right">' + esc(m.phone || '') + '</td><td>' + tierPill(m.tier, m.joined) + '</td><td>' + nis(m.balance) + '</td><td>' + day(m.last_order_at) + '</td></tr>';
+    if (!tierNames) { var pr = await api('program'); if (pr.ok) tierNames = pr.program.tiers.names; }
+    var tiers = r.tiers || {}, allN = Object.keys(tiers).reduce(function (a, k) { return a + tiers[k]; }, 0);
+    view.querySelector('[data-chips]').innerHTML = ML.status === 'pending' ? '' :
+      [''].concat(['bronze', 'silver', 'gold', 'platinum'].filter(function (t) { return tiers[t]; })).map(function (t) {
+        return '<button class="chip' + (ML.tier === t ? ' on' : '') + '" data-tier="' + t + '">' + (t ? esc(tname(t)) : 'כל הדרגות') + ' <b>' + num(t ? tiers[t] : allN) + '</b></button>';
+      }).join('');
+    view.querySelectorAll('[data-tier]').forEach(function (b) { b.onclick = function () { ML.tier = b.getAttribute('data-tier'); ML.offset = 0; loadMembers(); }; });
+    var sm = r.sum || {};
+    view.querySelector('[data-sum]').innerHTML = '<span><b>' + num(r.total) + '</b> ' + (ML.status === 'pending' ? 'קונים' : 'חברים') + '</span>' +
+      '<span>קנו בסה״כ <b>' + nis(sm.spent) + '</b></span><span>יתרות פתוחות <b>' + nis(sm.balance) + '</b></span><span>מומש <b>' + nis(sm.redeemed) + '</b></span>';
+    if (!r.rows.length) { list.innerHTML = '<p class="muted card">לא נמצאו תוצאות.</p>'; view.querySelector('[data-pager]').innerHTML = ''; return; }
+    list.innerHTML = '<table class="mtable"><thead><tr>' + COLS.map(function (c) {
+        if (!c.id) return '<th>' + c.label + '</th>';
+        var on = ML.sort === c.id;
+        return '<th><button class="sort' + (on ? ' on' : '') + '" data-sort="' + c.id + '">' + c.label + (on ? (ML.dir === 'desc' ? ' ▼' : ' ▲') : '') + '</button></th>';
+      }).join('') + '</tr></thead><tbody>' +
+      r.rows.map(function (m) {
+        var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || '—';
+        return '<tr class="row" data-id="' + esc(m.id) + '"><td><b>' + esc(name) + '</b><div class="sub">' + esc(m.email || '') + (m.phone ? ' · <span dir="ltr">' + esc(m.phone) + '</span>' : '') + '</div></td>' +
+          '<td>' + tierPill2(m.tier, m.joined) + '</td><td><b>' + nis(m.spent) + '</b></td><td>' + num(m.orders) + '</td><td>' + nis(m.spent_12m) + '</td>' +
+          '<td>' + nis(m.balance) + '</td><td>' + (m.redeemed ? nis(m.redeemed) : '—') + '</td><td>' + day(m.last_order_at) + '</td><td>' + day(m.joined_at) + '</td></tr>';
       }).join('') + '</tbody></table>';
+    view.querySelectorAll('[data-sort]').forEach(function (b) {
+      b.onclick = function () {
+        var c = b.getAttribute('data-sort');
+        ML.dir = ML.sort === c ? (ML.dir === 'desc' ? 'asc' : 'desc') : (c === 'name' ? 'asc' : 'desc');
+        ML.sort = c; ML.offset = 0; loadMembers();
+      };
+    });
+    var from = ML.offset + 1, to = ML.offset + r.rows.length;
+    view.querySelector('[data-pager]').innerHTML = '<span class="muted">' + num(from) + '–' + num(to) + ' מתוך ' + num(r.total) + '</span>' +
+      (ML.offset > 0 ? '<button class="tab" data-prev>→ הקודם</button>' : '') + (to < r.total ? '<button class="tab" data-next>הבא ←</button>' : '');
+    var pv = view.querySelector('[data-prev]'), nx = view.querySelector('[data-next]');
+    if (pv) pv.onclick = function () { ML.offset = Math.max(0, ML.offset - ML.limit); loadMembers(); window.scrollTo(0, 0); };
+    if (nx) nx.onclick = function () { ML.offset += ML.limit; loadMembers(); window.scrollTo(0, 0); };
     bindRows();
+  }
+  async function exportMembers() {
+    var r = await api('members', { q: ML.q, status: ML.status, tier: ML.tier, sort: ML.sort, dir: ML.dir, offset: 0, limit: 5000 });
+    if (!r.ok) { shopify.toast.show('שגיאה בייצוא', { isError: true }); return; }
+    var head = ['שם פרטי', 'שם משפחה', 'מייל', 'טלפון', 'עיר', 'סטטוס', 'דרגה', 'סה״כ קניות ₪', 'הזמנות', 'קניות 12 חודשים ₪', 'יתרה ₪', 'מומש ₪', 'קנייה אחרונה', 'הצטרפות', 'תאריך לידה'];
+    var rows = r.rows.map(function (m) {
+      return [m.first_name, m.last_name, m.email, m.phone, m.region, m.joined ? 'חבר/ה' : 'עוד לא הצטרף/ה', tname(m.tier), Math.round(m.spent), m.orders,
+        Math.round(m.spent_12m), m.balance, m.redeemed, m.last_order_at ? m.last_order_at.slice(0, 10) : '', m.joined_at ? m.joined_at.slice(0, 10) : '', m.birthday || ''];
+    });
+    var csv = '﻿' + [head].concat(rows).map(function (row) {
+      return row.map(function (v) { v = v == null ? '' : String(v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; }).join(',');
+    }).join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'חברי-המועדון-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    shopify.toast.show('יוצאו ' + num(r.rows.length) + ' שורות');
   }
   function bindRows() {
     view.querySelectorAll('.row').forEach(function (tr) { tr.onclick = function () { memberDetail(tr.getAttribute('data-id')); }; });
@@ -353,40 +448,104 @@
     view.innerHTML = '<p class="muted">טוען…</p>';
     var r = await api('member', { id: id });
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
-    var m = r.member;
+    if (r.tier_names) tierNames = r.tier_names;
+    var m = r.member, st = r.stats || {}, sh = r.shopify;
+    var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || 'לקוח/ה';
     var gender = { female: 'נקבה', male: 'זכר', other: 'אחר' }[m.gender] || '—';
+    var age = m.birthday ? Math.floor((Date.now() - new Date(m.birthday)) / 31557600000) : null;
+    var avg = st.orders ? st.spent / st.orders : 0;
+    var consent = function (v) { return v === 'SUBSCRIBED' ? '<span class="plus">✓ מאשר/ת</span>' : v ? '<span class="muted">לא מאשר/ת</span>' : '—'; };
+    var progress = '';
+    if (r.next) {
+      var n = r.next, bars = [];
+      function pbar(label, v, max, unit) {
+        var pc = max ? Math.min(100, Math.round(v / max * 100)) : 0;
+        return '<div class="pb"><div class="pb__top"><span>' + label + '</span><b>' + num(v) + (unit || '') + ' / ' + num(max) + (unit || '') + '</b></div><div class="pb__track"><i style="width:' + pc + '%"></i></div></div>';
+      }
+      if (n.orders) bars.push(pbar('הזמנות ב-12 חודשים', n.orders_12m, n.orders));
+      if (n.amount) bars.push(pbar('קניות ב-12 חודשים', n.amount_12m, n.amount, ' ₪'));
+      progress = '<div class="card"><div class="k">הדרך ל' + esc(n.label) + (n.orders && n.amount ? ' (מספיק אחד מהשניים)' : '') + '</div>' + bars.join('') + '</div>';
+    } else if (m.joined) {
+      progress = '<div class="card"><div class="k">דרגה</div><p>בדרגה הגבוהה ביותר 🏆</p></div>';
+    }
+    var friends = (st.friends || []);
     view.innerHTML =
       '<p><button class="link" data-back>→ חזרה לרשימה</button></p>' +
-      '<div class="detail">' +
-        '<div class="card"><div class="k">' + tierPill(m.tier, m.joined) + '</div>' +
-          '<div class="v">' + esc((m.first_name || '') + ' ' + (m.last_name || '')) + '</div>' +
-          '<p>' + esc(m.email || '') + (m.phone ? ' · <span dir="ltr">' + esc(m.phone) + '</span>' : '') + '</p>' +
-          '<p class="muted">עיר: ' + esc(m.region || '—') + ' · מגדר: ' + gender + ' · תאריך לידה: ' + day(m.birthday) + '</p>' +
-          '<p class="muted">הצטרפות: ' + day(m.joined_at) + ' · קנייה אחרונה: ' + day(m.last_order_at) + '</p>' +
-          '<p><a href="' + STORE + '/customers/' + esc(m.shopify_customer_id) + '" target="_top">לכרטיס הלקוח ב-Shopify</a></p></div>' +
-        '<div class="card hl"><div class="k">יתרה</div><div class="v">' + nis(r.balance) + '</div>' +
-          '<div class="row-form"><select data-sign><option value="1">הוספה</option><option value="-1">הורדה</option></select>' +
-          '<input type="number" min="1" max="1000" placeholder="סכום ₪" style="width:110px" data-amount>' +
-          '<input type="text" maxlength="120" placeholder="סיבה (למשל: פיצוי על עיכוב)" style="flex:1;min-width:180px" data-note>' +
-          '<button class="primary" data-adjust>שמירה</button></div><p data-out class="muted"></p></div>' +
+      '<div class="cust">' +
+        '<div class="cust__head"><div class="avatar">' + esc(name.charAt(0)) + '</div><div class="cust__id">' +
+          '<h1>' + esc(name) + ' ' + tierPill2(m.tier, m.joined) + '</h1>' +
+          '<p>' + (m.email ? '<a href="mailto:' + esc(m.email) + '">' + esc(m.email) + '</a>' : '') + (m.phone ? ' · <a dir="ltr" href="tel:' + esc(m.phone) + '">' + esc(m.phone) + '</a>' : '') +
+            (m.phone ? ' · <a target="_blank" href="https://wa.me/972' + esc(String(m.phone).replace(/^0/, '')) + '">וואטסאפ</a>' : '') + '</p>' +
+          '<p class="muted">' + [m.joined ? 'חבר/ה מ-' + day(m.joined_at) : 'קנה/תה ועוד לא הצטרף/ה', m.region ? 'עיר: ' + esc(m.region) : '', gender !== '—' ? gender : '',
+            m.birthday ? 'יום הולדת ' + new Date(m.birthday).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' }) + (age != null ? ' (גיל ' + age + ')' : '') : ''].filter(Boolean).join(' · ') + '</p>' +
+        '</div><a class="tab" href="' + STORE + '/customers/' + esc(m.shopify_customer_id) + '" target="_top">פתיחה ב-Shopify ↗</a></div>' +
+        '<div class="grid">' +
+          card('סה״כ קניות', nis(st.spent), num(st.orders) + ' הזמנות', 'hl') +
+          card('ממוצע להזמנה', nis(avg)) +
+          card('12 החודשים האחרונים', nis(st.spent_12m), num(st.orders_12m) + ' הזמנות') +
+          card('מאז ההצטרפות', nis(st.spent_since_join)) +
+          card('יתרה עכשיו', nis(r.balance), '', 'hl') +
+          card('נקודות שקיבל/ה', nis(st.earned)) +
+          card('מימש/ה', nis(st.redeemed), num(st.codes_used) + ' קודים') +
+          (st.expired ? card('פג תוקף', nis(st.expired)) : '') +
+        '</div>' +
+        '<div class="detail" style="margin-top:12px">' +
+          progress +
+          '<div class="card"><div class="k">ב-Shopify (כל הזמנים)</div>' +
+            (sh ? '<p><b>' + nis(sh.spent) + '</b> · ' + num(sh.orders) + ' הזמנות · לקוח/ה מ-' + day(sh.created_at) + '</p>' +
+              '<p>דיוור במייל: ' + consent(sh.email_marketing) + ' · SMS: ' + consent(sh.sms_marketing) + '</p>' +
+              (sh.tags && sh.tags.length ? '<p class="muted">תגיות: ' + sh.tags.map(esc).join(', ') + '</p>' : '') +
+              (sh.note ? '<p class="muted">הערה: ' + esc(sh.note) + '</p>' : '')
+              : '<p class="muted">לא זמין כרגע</p>') + '</div>' +
+          '<div class="card"><div class="k">חבר מביא חבר</div>' +
+            (st.referred_by ? '<p>הגיע/ה דרך <button class="link" data-goto="' + esc(st.referred_by.id) + '">' + esc(st.referred_by.name) + '</button></p>' : '') +
+            '<p>שיתף/ה את הקישור ' + num(st.shares) + ' פעמים · הביא/ה ' + num(friends.length) + ' חברים' + (friends.length ? ' (' + friends.filter(function (f) { return f.status === 'rewarded'; }).length + ' קנו)' : '') + '</p>' +
+            (friends.length ? '<ul class="rules">' + friends.map(function (f) { return '<li><button class="link" data-goto="' + esc(f.id) + '">' + esc(f.name || 'חבר/ה') + '</button> · ' + day(f.at) + ' · ' + (f.status === 'rewarded' ? 'קנה/תה ✓' : 'עוד לא קנה/תה') + '</li>'; }).join('') + '</ul>' : '') +
+            ((st.birthday_rewards || []).length ? '<p class="muted">הטבות יום הולדת: ' + st.birthday_rewards.map(function (b) { return b.year + ' (' + b.percent + '%)'; }).join(', ') + '</p>' : '') +
+          '</div>' +
+          '<div class="card hl"><div class="k">עדכון יתרה ידני</div>' +
+            '<div class="row-form"><select data-sign><option value="1">הוספה</option><option value="-1">הורדה</option></select>' +
+            '<input type="number" min="1" max="1000" placeholder="סכום" style="width:100px" data-amount>' +
+            '<input type="text" maxlength="120" placeholder="סיבה (למשל: פיצוי על עיכוב)" style="flex:1;min-width:160px" data-note>' +
+            '<button class="primary" data-adjust>שמירה</button></div><p data-out class="muted"></p></div>' +
+        '</div>' +
       '</div>' +
-      '<h2>תנועות נקודות</h2>' +
-      (r.ledger.length
-        ? '<table><thead><tr><th>תאריך</th><th>סוג</th><th>פרטים</th><th>₪</th></tr></thead><tbody>' +
+      '<div class="tabs" style="margin-top:20px" data-subtabs><button class="tab" aria-selected="true" data-sub="orders">הזמנות (' + r.orders.length + ')</button>' +
+        '<button class="tab" aria-selected="false" data-sub="ledger">תנועות נקודות (' + r.ledger.length + ')</button>' +
+        '<button class="tab" aria-selected="false" data-sub="codes">קודי הנחה (' + r.redemptions.length + ')</button></div>' +
+      '<div data-subview></div>';
+    var subs = {
+      orders: r.orders.length
+        ? '<table><thead><tr><th>הזמנה</th><th>תאריך</th><th>סכום</th><th>נקודות</th><th>סטטוס</th></tr></thead><tbody>' +
+          r.orders.map(function (o) {
+            var stt = { paid: 'שולמה', refunded: 'הוחזרה', cancelled: 'בוטלה' }[o.status] || o.status;
+            return '<tr><td>' + esc(o.order_name || '') + '</td><td>' + day(o.paid_at) + '</td><td>' + nis(o.eligible_amount - o.refunded_amount) +
+              (o.refunded_amount > 0 ? ' <span class="muted">(הוחזר ' + nis(o.refunded_amount) + ')</span>' : '') + '</td><td>' + o.points_awarded + '</td><td>' + stt + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted card">אין הזמנות מתועדות.</p>',
+      ledger: r.ledger.length
+        ? '<table><thead><tr><th>תאריך</th><th>סוג</th><th>פרטים</th><th>סכום</th></tr></thead><tbody>' +
           r.ledger.map(function (l) {
             return '<tr><td>' + day(l.created_at) + '</td><td>' + esc(REASON[l.reason] || l.reason) + '</td><td>' + esc(l.note || '') +
               '</td><td class="' + (l.delta > 0 ? 'plus' : 'minus') + '">' + (l.delta > 0 ? '+' : '') + l.delta + '</td></tr>';
           }).join('') + '</tbody></table>'
-        : '<p class="muted">אין תנועות.</p>') +
-      '<h2>הזמנות</h2>' +
-      (r.orders.length
-        ? '<table><thead><tr><th>הזמנה</th><th>תאריך</th><th>סכום</th><th>נקודות</th><th>סטטוס</th></tr></thead><tbody>' +
-          r.orders.map(function (o) {
-            var st = { paid: 'שולמה', refunded: 'הוחזרה', cancelled: 'בוטלה' }[o.status] || o.status;
-            return '<tr><td>' + esc(o.order_name || '') + '</td><td>' + day(o.paid_at) + '</td><td>' + nis(o.eligible_amount - o.refunded_amount) + '</td><td>' + o.points_awarded + '</td><td>' + st + '</td></tr>';
+        : '<p class="muted card">אין תנועות.</p>',
+      codes: r.redemptions.length
+        ? '<table><thead><tr><th>קוד</th><th>סכום</th><th>נוצר</th><th>תוקף</th><th>סטטוס</th></tr></thead><tbody>' +
+          r.redemptions.map(function (c) {
+            var stt = { active: 'פעיל', used: 'נוצל ✓', expired: 'פג', restored: 'לא נוצל – הנקודות הוחזרו' }[c.status] || c.status;
+            return '<tr><td><code>' + esc(c.discount_code) + '</code></td><td>' + nis(c.points) + '</td><td>' + day(c.created_at) + '</td><td>' + day(c.expires_at) + '</td><td>' + stt + '</td></tr>';
           }).join('') + '</tbody></table>'
-        : '<p class="muted">אין הזמנות.</p>');
-    view.querySelector('[data-back]').onclick = function () { membersView(''); };
+        : '<p class="muted card">לא נוצרו קודים.</p>'
+    };
+    function showSub(k) {
+      view.querySelectorAll('[data-sub]').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-sub') === k)); });
+      view.querySelector('[data-subview]').innerHTML = subs[k];
+    }
+    view.querySelectorAll('[data-sub]').forEach(function (b) { b.onclick = function () { showSub(b.getAttribute('data-sub')); }; });
+    showSub('orders');
+    view.querySelectorAll('[data-goto]').forEach(function (b) { b.onclick = function () { memberDetail(b.getAttribute('data-goto')); }; });
+    view.querySelector('[data-back]').onclick = function () { membersView(); };
     var btn = view.querySelector('[data-adjust]');
     btn.onclick = async function () {
       var out = view.querySelector('[data-out]');
@@ -395,7 +554,7 @@
       var note = view.querySelector('[data-note]').value.trim();
       if (!amount || amount < 1) { out.textContent = 'נא לכתוב סכום'; return; }
       if (!note) { out.textContent = 'נא לכתוב סיבה'; return; }
-      if (!confirm((delta > 0 ? 'להוסיף ' : 'להוריד ') + Math.abs(delta) + ' ₪ ל' + ((m.first_name || '') + ' ' + (m.last_name || '')).trim() + '?')) return;
+      if (!confirm((delta > 0 ? 'להוסיף ' : 'להוריד ') + Math.abs(delta) + ' ל' + name + '?')) return;
       btn.disabled = true;
       var res = await api('adjust', {}, { member_id: m.id, delta: delta, note: note });
       btn.disabled = false;
@@ -657,7 +816,7 @@
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === tab)); });
     if (silent) return;
     if (tab === 'dashboard') dashboard();
-    else if (tab === 'members') membersView('');
+    else if (tab === 'members') membersView();
     else if (tab === 'connections') connections();
     else if (tab === 'program') programView();
     else settings();

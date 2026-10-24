@@ -107,6 +107,7 @@
   .savebar { position: sticky; bottom: 0; background: var(--cream); padding: 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 16px; }
   @media (max-width: 700px) { .pf .tierrow { grid-template-columns: 60px repeat(5, 1fr); font-size: 12px; } }
 
+  .subnav { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
   /* campaigns & design */
   .expwarn { background: #fff3e0; border-color: #f3d2a2; margin-top: 12px; }
   .camp { display: grid; gap: 10px; }
@@ -116,26 +117,100 @@
   .camp__state { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: #eee; color: var(--muted); white-space: nowrap; }
   .camp__state.on { background: var(--soft); color: var(--green-d); }
   .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  .design { display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start; }
+  .design { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px; align-items: start; }
+  .dcol { display: grid; gap: 12px; }
+  .dstep h3 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .dnum { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
   .design .fields { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
   .design label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-  .design input[type="color"] { width: 64px; height: 38px; padding: 2px; }
-  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
-  .swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .swatch { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+  .swatch.on { box-shadow: 0 0 0 2px var(--ink); }
+  .swatch--custom { display: inline-flex; align-items: center; justify-content: center; background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); color: #fff; font-weight: 800; position: relative; overflow: hidden; }
+  .swatch--custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .posopts, .cornopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .posopt, .cornopt { display: grid; gap: 6px; justify-items: center; padding: 10px; border: 2px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; font-weight: 600; }
+  .posopt.on, .cornopt.on { border-color: var(--green); background: var(--soft); }
+  .cornopt i { width: 70px; height: 24px; display: block; }
   .icons { display: flex; gap: 6px; flex-wrap: wrap; }
   .icons button { font-size: 20px; width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
   .icons button[aria-pressed="true"] { border-color: var(--green); background: var(--soft); }
-  .pv { position: sticky; top: 12px; background: #f2efe8; border-radius: 16px; padding: 14px; min-height: 420px; overflow: hidden; }
-  .pv__site { background: #fff; border-radius: 12px; padding: 14px; font-size: 13px; position: relative; min-height: 390px; }
-  .pv__bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .pv__badge, .pv__btn, .pv__fab, .pv__earn { font-weight: 700; }
-  .pv__badge { padding: 4px 10px; font-size: 12px; }
-  .pv__prod { display: grid; gap: 8px; }
-  .pv__img { height: 110px; border-radius: 10px; background: linear-gradient(135deg, #e8e2d6, #d9d1c0); }
-  .pv__earn { border-radius: 10px; padding: 8px 10px; font-weight: 400; }
-  .pv__btn { text-align: center; padding: 10px; }
-  .pv__fab { position: absolute; bottom: 14px; padding: 10px 16px; box-shadow: 0 6px 16px rgba(0,0,0,.2); }
-  @media (max-width: 900px) { .design { grid-template-columns: 1fr; } .camp__row { grid-template-columns: 1fr 1fr; } }
+  .elopts { display: grid; gap: 8px; }
+  .elopt { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+  .elopt.focus { border-color: var(--green); box-shadow: 0 0 0 2px var(--soft); }
+  .elopt__txt { display: grid; gap: 2px; } .elopt__txt span { color: var(--muted); font-size: 12px; }
+  .switch2 { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch2 input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; z-index: 1; }
+  .switch2 i { position: absolute; inset: 0; border-radius: 99px; background: #cfccc3; transition: background .2s; }
+  .switch2 i::after { content: ""; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: right .2s; }
+  .switch2 input:checked + i { background: var(--green); } .switch2 input:checked + i::after { right: 21px; }
+  .switch2 input:focus-visible + i { outline: 2px solid var(--ink); outline-offset: 2px; }
+  /* thumbnails */
+  .th { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .th--desk { width: 92px; height: 60px; } .th--phone { width: 40px; height: 64px; border-radius: 9px; margin: 0 auto; }
+  .th i { position: absolute; display: block; }
+  .th__hdr { top: 0; inset-inline: 0; height: 11px; background: #efece5; }
+  .th__hero { top: 15px; inset-inline: 6px; height: 18px; background: #e4dfd4; border-radius: 3px; }
+  .th__fab { bottom: 6px; width: 26px; height: 9px; border-radius: 99px; }
+  .th__fab--dot { width: 11px; height: 11px; }
+  .th__badge { position: absolute; top: 2px; left: 6px; width: 24px; height: 7px; border: 1px solid; border-radius: 99px; }
+  .th--prod .th__img { top: 6px; right: 6px; width: 34px; height: 46px; background: #e4dfd4; border-radius: 3px; }
+  .th__line { top: 8px; left: 6px; width: 40px; height: 5px; background: #d9d4c9; border-radius: 2px; }
+  .th__line--s { top: 17px; width: 22px; }
+  .th__earn { top: 27px; left: 6px; width: 42px; height: 9px; border: 1px solid; border-radius: 3px; }
+  .th__btn { top: 41px; left: 6px; width: 42px; height: 9px; background: #2f2e2b; border-radius: 3px; }
+  /* big preview */
+  .pv2 { position: sticky; top: 12px; background: #eceae4; border-radius: 16px; padding: 14px; }
+  .pvbar { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .seg2 { display: inline-flex; background: #fff; border-radius: 10px; padding: 3px; gap: 2px; }
+  .seg2 button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font: inherit; font-size: 13px; cursor: pointer; }
+  .seg2 button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .mock { background: #fff; margin: 0 auto; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+  .mock--desk { border-radius: 10px; max-width: 100%; }
+  .mock--phone { width: 250px; border-radius: 30px; border: 8px solid #1d1a2b; position: relative; }
+  .mock__notch { display: block; width: 80px; height: 16px; background: #1d1a2b; border-radius: 0 0 10px 10px; margin: 0 auto; }
+  .mock__chrome { display: flex; align-items: center; gap: 5px; padding: 8px 10px; background: #f2f0ea; border-bottom: 1px solid var(--line); }
+  .mock__chrome i { width: 9px; height: 9px; border-radius: 50%; background: #d2cec4; }
+  .mock__chrome span { margin-inline-start: 8px; flex: 1; background: #fff; border-radius: 6px; padding: 2px 10px; font-size: 11px; color: var(--muted); direction: ltr; text-align: left; }
+  .mock__page { position: relative; min-height: 380px; padding-bottom: 60px; font-size: 12px; }
+  .mock--phone .mock__page { min-height: 430px; }
+  .m-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #f0ede6; }
+  .m-logo { font-weight: 800; font-size: 13px; }
+  .m-nav { display: flex; gap: 8px; } .m-nav i { width: 34px; height: 6px; background: #e6e2d9; border-radius: 3px; display: block; }
+  .m-icons { display: flex; align-items: center; gap: 6px; }
+  .m-ico { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #b9b4a8; display: block; }
+  .m-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; white-space: nowrap; }
+  .m-hero { margin: 12px; height: 110px; border-radius: 10px; background: linear-gradient(120deg, #e9e3d7, #d8cfbd); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 8px; padding: 0 18px; }
+  .m-hero b { font-size: 16px; } .m-cta { background: #2f2e2b; color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 11px; }
+  .m-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 12px; }
+  .m-grid--2 { grid-template-columns: repeat(2, 1fr); }
+  .m-card i { display: block; aspect-ratio: 1; background: #efebe3; border-radius: 8px; }
+  .m-card b { display: block; height: 6px; width: 70%; background: #e2ded5; margin-top: 6px; border-radius: 3px; }
+  .m-card s { display: block; height: 6px; width: 40%; background: #e9e5dd; margin-top: 4px; border-radius: 3px; text-decoration: none; }
+  .m-prod { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
+  .m-prod--phone { grid-template-columns: 1fr; }
+  .m-pimg { aspect-ratio: 4/5; background: linear-gradient(135deg, #e8e2d6, #d9d1c0); border-radius: 10px; }
+  .m-prod--phone .m-pimg { aspect-ratio: 4/3; }
+  .m-pinfo { display: flex; flex-direction: column; gap: 8px; }
+  .m-title { font-size: 15px; } .m-price { font-weight: 700; }
+  .m-earn { padding: 7px 9px; border-radius: 8px; line-height: 1.4; }
+  .m-atc { background: #2f2e2b; color: #fff; text-align: center; padding: 8px; border-radius: 8px; font-weight: 700; }
+  .m-cart { margin: 12px; margin-inline-start: auto; max-width: 260px; display: grid; gap: 10px; padding: 12px; border: 1px solid #ece8e0; border-radius: 10px; }
+  .m-item { display: flex; gap: 8px; align-items: center; } .m-item i { width: 40px; height: 40px; background: #e6e0d4; border-radius: 6px; display: block; }
+  .m-club { display: grid; gap: 6px; padding: 10px; border-radius: 10px; }
+  .m-range { height: 6px; background: #fff; border-radius: 99px; overflow: hidden; } .m-range i { display: block; height: 100%; }
+  .m-use { text-align: center; padding: 7px; font-weight: 700; }
+  .m-checkout { background: #2f2e2b; color: #fff; text-align: center; padding: 8px; border-radius: 8px; font-weight: 700; }
+  .m-fab { position: absolute; bottom: 14px; padding: 9px 14px; font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,.25); white-space: nowrap; }
+  .m-fab--phone { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .m-spot { position: absolute; bottom: 8px; width: 90px; height: 48px; border: 2px dashed var(--green); background: rgba(71, 121, 43, .08); border-radius: 12px; font: inherit; font-weight: 700; color: var(--green-d); cursor: pointer; }
+  .m-spot--right { right: 8px; } .m-spot--left { left: 8px; }
+  .m-spot.on { opacity: 0; }
+  .pv-hl { outline: 3px solid #ff6b8b; outline-offset: 3px; animation: pvpulse 1.4s ease-in-out infinite; }
+  @keyframes pvpulse { 50% { outline-color: rgba(255, 107, 139, .25); } }
+  @media (prefers-reduced-motion: reduce) { .pv-hl { animation: none; } }
+  .pvnote { text-align: center; margin: 10px 0 0; }
+  @media (max-width: 900px) { .design { grid-template-columns: 1fr; } .pv2 { position: static; } .camp__row { grid-template-columns: 1fr 1fr; } }
 
   /* connections */
   .conn { display: grid; gap: 12px; }
@@ -203,7 +278,6 @@
     <button class="tab" role="tab" data-tab="program" aria-selected="false">תוכנית</button>
     <button class="tab" role="tab" data-tab="campaigns" aria-selected="false">מבצעים</button>
     <button class="tab" role="tab" data-tab="design" aria-selected="false">עיצוב</button>
-    <button class="tab" role="tab" data-tab="connections" aria-selected="false">חיבורים</button>
     <button class="tab" role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
   </div>
   <main id="view"><p class="muted">טוען…</p></main>
@@ -613,6 +687,17 @@
   }
 
   // ---------- settings ----------
+  // Settings has two parts: general and the connections to other tools.
+  function subnav(active) {
+    return '<div class="subnav" role="tablist">' + [['general', 'כללי'], ['connections', 'חיבורים לכלים אחרים']].map(function (x) {
+      return '<button class="chip' + (x[0] === active ? ' on' : '') + '" data-sub-s="' + x[0] + '">' + x[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function bindSubnav() {
+    view.querySelectorAll('[data-sub-s]').forEach(function (b) {
+      b.onclick = function () { viewSeq++; if (b.getAttribute('data-sub-s') === 'connections') connections(); else settings(); };
+    });
+  }
   async function settings() {
     view.innerHTML = '<p class="muted">טוען…</p>';
     var mySeq = viewSeq;
@@ -620,7 +705,7 @@
     if (mySeq !== viewSeq) return;
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     var s = r.settings || {};
-    view.innerHTML =
+    view.innerHTML = subnav('general') +
       '<div class="card switch"><div><b>פרסום אוטומטי בטלגרם</b><div class="muted">כשמוצר שאזל חוזר למלאי, הבוט מפרסם בערוץ t.me/happyhempy (פוסט אחד למוצר ביום).</div></div>' +
       '<label><input type="checkbox" data-tg ' + (s.telegram_restock === true ? 'checked' : '') + '> ' + (s.telegram_restock === true ? 'פעיל' : 'כבוי') + '</label></div>' +
       '<h2>כללי המועדון</h2><div class="card"><p class="muted">הכללים נקבעים בלשונית <b>תוכנית</b>.</p><ul class="rules" style="display:none">' +
@@ -635,6 +720,7 @@
       '<a href="https://www.happy-hempy.com/pages/hempy-club-terms" target="_blank">התקנון</a> · ' +
       '<a href="https://supabase.com/dashboard/project/xblhodzcowleloqsveun/editor" target="_blank">כל הנתונים ב-Supabase</a></p>' +
       (s.test_mode === true ? '<p class="err">שימו לב: מצב בדיקה פעיל.</p>' : '') + '</div>';
+    bindSubnav();
     var tg = view.querySelector('[data-tg]');
     tg.onchange = async function () {
       var want = tg.checked;
@@ -846,10 +932,12 @@
     };
   }
 
-  // ---------- store design (like Smile's Branding panel) ----------
+  // ---------- store design: every choice is made by looking at the site ----------
   var brand = null, brandSaved = null;
+  var PV = { page: 'home', device: 'desktop', hl: null };
   var SWATCHES = ['#47792b', '#1f6f5c', '#2563eb', '#6c4bf4', '#c2185b', '#e4572e', '#1d1a2b', '#b08a1e'];
   var ICON_SET = ['⭐', '🎁', '💎', '👑', '💚', '🏆', '✨', '🛍️'];
+  var CORNERS = [{ v: 0, label: 'מרובע' }, { v: 12, label: 'מעוגל' }, { v: 99, label: 'עגול' }];
   async function designView() {
     view.innerHTML = '<p class="muted">טוען…</p>';
     var mySeq = viewSeq;
@@ -864,62 +952,143 @@
     var c = [0, 2, 4].map(function (i) { return Math.round(parseInt(h.substr(i, 2), 16) * pct + parseInt(b.substr(i, 2), 16) * (1 - pct)); });
     return '#' + c.map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
   }
+  /** White or dark text, whichever reads better on the colour. */
+  function textOn(hex) {
+    var h = hex.replace('#', ''), r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 170 ? '#1d1a2b' : '#ffffff';
+  }
+  var ELEMENTS = [
+    { key: 'show_launcher', page: 'home', device: 'desktop', title: 'כפתור צף', hint: 'בפינת המסך בכל דפי האתר. פותח את המועדון.' },
+    { key: 'show_launcher_mobile', page: 'home', device: 'phone', title: 'כפתור צף בטלפון', hint: 'בטלפון הוא מתקטן לכוכב כשגוללים.' },
+    { key: 'show_header_badge', page: 'home', device: 'desktop', title: 'יתרה בתפריט העליון', hint: 'ליד אייקון החשבון: כמה נקודות יש ללקוח.' },
+    { key: 'show_product_badge', page: 'product', device: 'desktop', title: '"תקבלו X חזרה" בדף המוצר', hint: 'מתחת למחיר: כמה הלקוח יקבל על המוצר.' }
+  ];
+  function thumb(kind, on) {
+    // tiny drawings of where each element sits
+    var p = brand.primary, soft = mix(p, 0.18, '#ffffff');
+    var off = on ? '' : ' opacity:.25;';
+    if (kind === 'show_launcher') return '<div class="th th--desk"><i class="th__hdr"></i><i class="th__hero"></i><i class="th__fab" style="background:' + p + ';' + (brand.position === 'left' ? 'left:6px' : 'right:6px') + ';' + off + '"></i></div>';
+    if (kind === 'show_launcher_mobile') return '<div class="th th--phone"><i class="th__hdr"></i><i class="th__hero"></i><i class="th__fab th__fab--dot" style="background:' + p + ';' + (brand.position === 'left' ? 'left:5px' : 'right:5px') + ';' + off + '"></i></div>';
+    if (kind === 'show_header_badge') return '<div class="th th--desk"><i class="th__hdr"><b class="th__badge" style="background:' + soft + ';border-color:' + p + ';' + off + '"></b></i><i class="th__hero"></i></div>';
+    return '<div class="th th--desk th--prod"><i class="th__img"></i><i class="th__line"></i><i class="th__line th__line--s"></i><i class="th__earn" style="background:' + soft + ';border-color:' + p + ';' + off + '"></i><i class="th__btn"></i></div>';
+  }
+  function corner(max) { return Math.min(brand.corner, max) + 'px'; }
+  function hlCls(key) { return PV.hl === key ? ' pv-hl' : ''; }
+  function previewHtml() {
+    var b = brand, p = b.primary, txt = b.primary_text, soft = mix(p, 0.14, '#ffffff'), dark = mix(p, 0.78, '#000000');
+    var phone = PV.device === 'phone';
+    var fabOn = phone ? (b.show_launcher && b.show_launcher_mobile) : b.show_launcher;
+    var side = b.position === 'left' ? 'left' : 'right';
+    var badge = b.show_header_badge ? '<span class="m-badge' + hlCls('show_header_badge') + '" style="background:' + soft + ';color:' + dark + ';border-radius:' + corner(99) + '">' + esc(b.launcher_icon) + ' 64 ₪</span>' : '';
+    var header = '<div class="m-hdr"><span class="m-logo">החנות שלי</span>' + (phone ? '' : '<span class="m-nav"><i></i><i></i><i></i></span>') +
+      '<span class="m-icons">' + badge + '<i class="m-ico"></i><i class="m-ico"></i></span></div>';
+    var body;
+    if (PV.page === 'home') {
+      body = '<div class="m-hero"><b>קולקציית סתיו</b><span class="m-cta">לקנייה</span></div><div class="m-grid' + (phone ? ' m-grid--2' : '') + '">' +
+        [1, 2, 3, 4].map(function () { return '<div class="m-card"><i></i><b></b><s></s></div>'; }).join('') + '</div>';
+    } else if (PV.page === 'product') {
+      body = '<div class="m-prod' + (phone ? ' m-prod--phone' : '') + '"><div class="m-pimg"></div><div class="m-pinfo"><b class="m-title">תיק צד קנבוס</b><span class="m-price">189 ₪</span>' +
+        (b.show_product_badge ? '<div class="m-earn' + hlCls('show_product_badge') + '" style="background:' + soft + '">' + esc(b.launcher_icon) + ' על המוצר הזה תקבלו <b style="color:' + dark + '">9 ₪</b> חזרה לקנייה הבאה</div>' : '') +
+        '<div class="m-atc">הוספה לסל</div></div></div>';
+    } else {
+      body = '<div class="m-cart"><b>הסל שלך</b><div class="m-item"><i></i><span>תיק צד קנבוס<br><small>189 ₪</small></span></div>' +
+        '<div class="m-club" style="background:' + soft + '"><span>יש לך <b>64</b> נקודות = 64 ₪</span><small>כמה להשתמש עכשיו?</small>' +
+        '<div class="m-range"><i style="background:' + p + ';width:70%"></i></div>' +
+        '<div class="m-use" style="background:' + p + ';color:' + txt + ';border-radius:' + corner(12) + '">השתמש ב-56 נקודות (56 ₪ הנחה)</div></div>' +
+        '<div class="m-checkout">לתשלום</div></div>';
+    }
+    var fab = fabOn ? '<div class="m-fab' + (phone ? ' m-fab--phone' : '') + hlCls(phone ? 'show_launcher_mobile' : 'show_launcher') + '" style="' + side + ':' + (phone ? '10px' : '16px') + ';background:' + p + ';color:' + txt + ';border-radius:' + corner(99) + '">' +
+      esc(b.launcher_icon) + (phone ? '' : ' ' + esc(b.launcher_label)) + '</div>' : '';
+    var spots = '<button class="m-spot m-spot--right' + (side === 'right' ? ' on' : '') + '" data-pos="right" title="להעביר לכאן">כאן</button>' +
+      '<button class="m-spot m-spot--left' + (side === 'left' ? ' on' : '') + '" data-pos="left" title="להעביר לכאן">כאן</button>';
+    return '<div class="pvbar"><div class="seg2">' + [['home', 'דף הבית'], ['product', 'דף מוצר'], ['cart', 'עגלה']].map(function (x) {
+        return '<button data-pg="' + x[0] + '" aria-pressed="' + (PV.page === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="seg2">' + [['desktop', '🖥 מחשב'], ['phone', '📱 טלפון']].map(function (x) {
+        return '<button data-dev="' + x[0] + '" aria-pressed="' + (PV.device === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="mock ' + (phone ? 'mock--phone' : 'mock--desk') + '">' + (phone ? '<i class="mock__notch"></i>' : '<div class="mock__chrome"><i></i><i></i><i></i><span>www.your-store.co.il</span></div>') +
+        '<div class="mock__page">' + header + body + fab + (PV.hl === 'position' ? spots : '') + '</div></div>' +
+      '<p class="hint pvnote">' + (PV.hl === 'position' ? 'לחצו על הפינה שבה תרצו את הכפתור.' : 'זו תצוגה לדוגמה. באתר שלכם הכפתור והצבעים ייראו כך על העיצוב שלכם.') + '</p>';
+  }
   function renderDesign() {
-    var b = brand, soft = mix(b.primary, 0.14, '#ffffff'), dark = mix(b.primary, 0.78, '#000000');
+    var b = brand;
     var dirty = JSON.stringify(brand) !== JSON.stringify(brandSaved);
-    var rad = b.corner + 'px';
+    var step = function (n, title, body, extra) { return '<div class="card dstep"' + (extra || '') + '><h3><span class="dnum">' + n + '</span>' + title + '</h3>' + body + '</div>'; };
+    var posThumb = function (pos, label) {
+      return '<button class="posopt' + (b.position === pos ? ' on' : '') + '" data-pos="' + pos + '"><div class="th th--desk"><i class="th__hdr"></i><i class="th__hero"></i>' +
+        '<i class="th__fab" style="background:' + b.primary + ';' + pos + ':6px"></i></div><span>' + label + '</span></button>';
+    };
     view.innerHTML =
-      '<p class="muted" style="margin-top:0">כך המועדון נראה באתר שלכם. השינוי נכנס לאתר מיד עם השמירה.</p>' +
-      '<div class="design"><div class="pf">' +
-        '<div class="card"><h3>צבעים</h3><div class="fields">' +
-          '<label class="f">צבע ראשי<input type="color" data-b="primary" value="' + esc(b.primary) + '"></label>' +
-          '<div class="swatches">' + SWATCHES.map(function (c) { return '<button class="swatch" style="background:' + c + '" data-sw="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div>' +
-          '<label class="f">טקסט על הצבע<input type="color" data-b="primary_text" value="' + esc(b.primary_text) + '"></label>' +
-          '<label class="f">צבע משני<input type="color" data-b="accent" value="' + esc(b.accent) + '"></label>' +
-          '<label class="f">עיגול פינות<input type="range" min="0" max="99" data-b="corner" value="' + b.corner + '"></label>' +
-        '</div></div>' +
-        '<div class="card"><h3>הכפתור הצף</h3><div class="fields">' +
-          '<label class="f">טקסט<input type="text" maxlength="24" data-b="launcher_label" data-t="text" value="' + esc(b.launcher_label) + '"></label>' +
-          '<label class="f">צד<select data-b="position" data-t="text"><option value="right"' + (b.position === 'right' ? ' selected' : '') + '>ימין</option><option value="left"' + (b.position === 'left' ? ' selected' : '') + '>שמאל</option></select></label>' +
-        '</div><p class="hint" style="margin:10px 0 6px">אייקון</p><div class="icons">' + ICON_SET.map(function (ic) { return '<button data-ic="' + ic + '" aria-pressed="' + (b.launcher_icon === ic) + '">' + ic + '</button>'; }).join('') + '</div>' +
-        '<div class="fields" style="margin-top:12px">' +
-          tgB('show_launcher', 'להציג את הכפתור הצף') + tgB('show_launcher_mobile', 'גם בטלפון') +
-        '</div></div>' +
-        '<div class="card"><h3>מה מופיע באתר</h3><div class="fields">' +
-          tgB('show_header_badge', 'יתרה ליד אייקון החשבון בתפריט') + tgB('show_product_badge', '"תקבלו X חזרה" בדף המוצר') +
-        '</div></div>' +
+      '<p class="muted" style="margin-top:0">כל שינוי מופיע מיד בתמונה של האתר. כשזה נראה טוב, לוחצים "שמירה" והאתר מתעדכן.</p>' +
+      '<div class="design">' +
+      '<div class="dcol">' +
+        step(1, 'הצבע של המועדון', '<div class="swatches">' + SWATCHES.map(function (c) {
+            return '<button class="swatch' + (b.primary === c ? ' on' : '') + '" style="background:' + c + '" data-sw="' + c + '" aria-label="צבע ' + c + '"></button>'; }).join('') +
+          '<label class="swatch swatch--custom" title="צבע אחר"><input type="color" data-b="primary" value="' + esc(b.primary) + '" aria-label="צבע אחר">+</label></div>' +
+          '<p class="hint" style="margin:8px 0 0">צבע הכיתוב על הכפתורים נבחר לבד כך שיהיה קריא.</p>') +
+        step(2, 'איפה יהיה הכפתור הצף?', '<div class="posopts">' + posThumb('right', 'למטה בצד ימין') + posThumb('left', 'למטה בצד שמאל') + '</div>',
+          ' data-focus="position"') +
+        step(3, 'מה כתוב על הכפתור', '<div class="fields"><label class="f">טקסט<input type="text" maxlength="24" data-b="launcher_label" value="' + esc(b.launcher_label) + '"></label></div>' +
+          '<p class="hint" style="margin:10px 0 6px">אייקון</p><div class="icons">' + ICON_SET.map(function (ic) {
+            return '<button data-ic="' + ic + '" aria-pressed="' + (b.launcher_icon === ic) + '">' + ic + '</button>'; }).join('') + '</div>', ' data-focus="show_launcher"') +
+        step(4, 'מה יופיע באתר', '<div class="elopts">' + ELEMENTS.map(function (el) {
+            var on = !!b[el.key];
+            return '<div class="elopt' + (PV.hl === el.key ? ' focus' : '') + '" data-el="' + el.key + '">' + thumb(el.key, on) +
+              '<div class="elopt__txt"><b>' + el.title + '</b><span>' + el.hint + '</span></div>' +
+              '<label class="switch2"><input type="checkbox" data-b="' + el.key + '" ' + (on ? 'checked' : '') + ' aria-label="' + esc(el.title) + '"><i></i></label></div>';
+          }).join('') + '</div>') +
+        step(5, 'צורת הכפתורים', '<div class="cornopts">' + CORNERS.map(function (c) {
+            return '<button class="cornopt' + (b.corner === c.v ? ' on' : '') + '" data-corner="' + c.v + '"><i style="border-radius:' + Math.min(c.v, 14) + 'px;background:' + b.primary + '"></i>' + c.label + '</button>'; }).join('') + '</div>') +
       '</div>' +
-      '<div class="pv" aria-label="תצוגה מקדימה"><div class="pv__site">' +
-        '<div class="pv__bar"><b>החנות שלי</b>' + (b.show_header_badge ? '<span class="pv__badge" style="background:' + soft + ';color:' + dark + ';border-radius:' + rad + '">' + esc(b.launcher_icon) + ' 64 ₪</span>' : '<span></span>') + '</div>' +
-        '<div class="pv__prod"><div class="pv__img"></div><b>תיק צד קנבוס</b><span>189 ₪</span>' +
-          (b.show_product_badge ? '<div class="pv__earn" style="background:' + soft + '">' + esc(b.launcher_icon) + ' על המוצר הזה תקבלו <b style="color:' + dark + '">9 ₪</b> חזרה</div>' : '') +
-          '<div class="pv__btn" style="background:' + esc(b.primary) + ';color:' + esc(b.primary_text) + ';border-radius:' + Math.min(b.corner, 12) + 'px">השתמש ב-64 נקודות</div>' +
-        '</div>' +
-        (b.show_launcher ? '<div class="pv__fab" style="' + (b.position === 'left' ? 'left' : 'right') + ':14px;background:' + esc(b.primary) + ';color:' + esc(b.primary_text) + ';border-radius:' + rad + '">' + esc(b.launcher_icon) + ' ' + esc(b.launcher_label) + '</div>' : '') +
-      '</div></div></div>' +
+      '<div class="pv2">' + previewHtml() + '</div>' +
+      '</div>' +
       '<div class="savebar"><button class="primary" data-save-b ' + (dirty ? '' : 'disabled') + '>שמירה</button>' +
-        (dirty ? '<button class="link" data-reset-b>ביטול</button><span class="muted">יש שינויים שלא נשמרו</span>' : '<span class="muted">העיצוב שמור ופעיל</span>') + '</div>';
-    view.querySelectorAll('[data-b]').forEach(function (el) {
-      var ev = el.type === 'color' || el.type === 'range' ? 'input' : 'change';
-      el.addEventListener(ev, function () {
-        var k = el.getAttribute('data-b');
-        brand[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
-        var y = window.scrollY; renderDesign(); window.scrollTo(0, y);
-        var again = view.querySelector('[data-b="' + k + '"]'); if (again && el.type !== 'checkbox') again.focus();
+        (dirty ? '<button class="link" data-reset-b>ביטול השינויים</button><span class="muted">יש שינויים שלא נשמרו</span>' : '<span class="muted">העיצוב שמור ופעיל באתר</span>') + '</div>';
+    bindDesign();
+  }
+  function setBrand(k, v) { brand[k] = v; if (k === 'primary') brand.primary_text = textOn(v); var y = window.scrollY; renderDesign(); window.scrollTo(0, y); }
+  function bindDesign() {
+    view.querySelectorAll('[data-sw]').forEach(function (el) { el.onclick = function () { setBrand('primary', el.getAttribute('data-sw')); }; });
+    view.querySelectorAll('[data-ic]').forEach(function (el) { el.onclick = function () { PV.hl = 'show_launcher'; setBrand('launcher_icon', el.getAttribute('data-ic')); }; });
+    view.querySelectorAll('[data-pos]').forEach(function (el) { el.onclick = function () { PV.hl = 'position'; PV.page = 'home'; setBrand('position', el.getAttribute('data-pos')); }; });
+    view.querySelectorAll('[data-corner]').forEach(function (el) { el.onclick = function () { PV.page = 'cart'; PV.hl = null; setBrand('corner', Number(el.getAttribute('data-corner'))); }; });
+    view.querySelectorAll('[data-pg]').forEach(function (el) { el.onclick = function () { PV.page = el.getAttribute('data-pg'); PV.hl = null; renderDesign(); }; });
+    view.querySelectorAll('[data-dev]').forEach(function (el) { el.onclick = function () { PV.device = el.getAttribute('data-dev'); renderDesign(); }; });
+    view.querySelectorAll('[data-focus]').forEach(function (el) {
+      el.addEventListener('mouseenter', function () { var f = el.getAttribute('data-focus'); if (PV.hl !== f) { PV.hl = f; PV.page = 'home'; PV.device = 'desktop'; refreshPreview(); } });
+    });
+    view.querySelectorAll('[data-el]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.switch2')) return;
+        var k = el.getAttribute('data-el'), def = ELEMENTS.filter(function (x) { return x.key === k; })[0];
+        PV.hl = k; PV.page = def.page; PV.device = def.device; renderDesign();
       });
     });
-    view.querySelectorAll('[data-sw]').forEach(function (s) { s.onclick = function () { brand.primary = s.getAttribute('data-sw'); renderDesign(); }; });
-    view.querySelectorAll('[data-ic]').forEach(function (s) { s.onclick = function () { brand.launcher_icon = s.getAttribute('data-ic'); renderDesign(); }; });
-    var rs = view.querySelector('[data-reset-b]'); if (rs) rs.onclick = function () { brand = clone(brandSaved); renderDesign(); };
+    view.querySelectorAll('[data-b]').forEach(function (el) {
+      var k = el.getAttribute('data-b');
+      if (el.type === 'checkbox') el.onchange = function () {
+        var def = ELEMENTS.filter(function (x) { return x.key === k; })[0];
+        if (def) { PV.hl = k; PV.page = def.page; PV.device = def.device; }
+        setBrand(k, el.checked);
+      };
+      else if (el.type === 'color') el.oninput = function () { setBrand('primary', el.value); };
+      else el.onchange = function () { PV.hl = 'show_launcher'; setBrand(k, el.value); };
+    });
+    var rs = view.querySelector('[data-reset-b]'); if (rs) rs.onclick = function () { brand = clone(brandSaved); PV.hl = null; renderDesign(); };
     view.querySelector('[data-save-b]').onclick = async function () {
       var r = await api('branding', {}, { branding: brand });
       if (!r.ok) { shopify.toast.show(r.message || 'שגיאה', { isError: true }); return; }
-      brand = clone(r.branding); brandSaved = clone(r.branding);
-      shopify.toast.show(r.warning || 'העיצוב נשמר', r.warning ? { isError: true } : undefined);
+      brand = clone(r.branding); brandSaved = clone(r.branding); PV.hl = null;
+      shopify.toast.show(r.warning || 'העיצוב נשמר והאתר עודכן', r.warning ? { isError: true } : undefined);
       renderDesign();
     };
   }
-  function tgB(k, label) { return '<label class="tg"><input type="checkbox" data-b="' + k + '" ' + (brand[k] ? 'checked' : '') + '> ' + label + '</label>'; }
+  function refreshPreview() {
+    var pv = view.querySelector('.pv2'); if (!pv) return;
+    pv.innerHTML = previewHtml();
+    pv.querySelectorAll('[data-pg]').forEach(function (el) { el.onclick = function () { PV.page = el.getAttribute('data-pg'); PV.hl = null; renderDesign(); }; });
+    pv.querySelectorAll('[data-dev]').forEach(function (el) { el.onclick = function () { PV.device = el.getAttribute('data-dev'); renderDesign(); }; });
+    pv.querySelectorAll('[data-pos]').forEach(function (el) { el.onclick = function () { PV.hl = 'position'; setBrand('position', el.getAttribute('data-pos')); }; });
+  }
 
   // ---------- connections ----------
   var GROUPS = [
@@ -980,13 +1149,14 @@
   function copyBtn(text) { return '<button class="tab" data-copy="' + esc(text) + '">העתקה</button>'; }
   function renderConnections(list) {
     var connectedN = list.filter(function (x) { return x.connected; }).length;
-    view.innerHTML = '<p class="muted" style="margin-top:0">מחברים את הכלים שלכם, והמועדון מעדכן אותם לבד. המפתחות נשמרים בשרת ולא מוצגים שוב.' +
+    view.innerHTML = subnav('connections') + '<p class="muted" style="margin-top:0">מחברים את הכלים שלכם, והמועדון מעדכן אותם לבד. המפתחות נשמרים בשרת ולא מוצגים שוב.' +
       (connectedN ? ' <b>' + connectedN + ' מחוברים.</b>' : '') + '</p>' +
       GROUPS.map(function (g) {
         var items = list.filter(function (x) { return x.kind === g.kind && TOOLS[x.provider]; });
         if (!items.length) return '';
         return '<h2>' + g.title + '</h2><p class="muted" style="margin-top:-6px">' + g.hint + '</p><div class="conn">' + items.map(connCard).join('') + '</div>';
       }).join('');
+    bindSubnav();
     view.querySelectorAll('[data-copy]').forEach(function (b) {
       b.onclick = function () {
         var t = b.getAttribute('data-copy');

@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="shopify-api-key" content="9f826a8f9f50e1e875512d53728ab7d6">
+<!-- App Bridge must be the first script in <head> (Shopify requirement; the mobile app is strict about it). -->
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 <title>מועדון החברים – ניהול</title>
 <!-- Hempy Club owner screen, embedded in Shopify admin (Apps → Hempy Club). Contains no data or secrets:
      everything is loaded from the club-admin API, which only answers with a valid Shopify session token. -->
 <script>
-  // Diagnostics: tell the server the page started loading (before App Bridge).
+  // Diagnostics: tell the server the page started loading.
   (function () {
     var q = new URLSearchParams(location.search);
     var info = 'host=' + q.has('host') + ' embedded=' + q.get('embedded') + ' top=' + (window.top === window);
@@ -18,7 +20,6 @@
     };
   })();
 </script>
-<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 <style>
   :root { --green: #47792b; --green-d: #34591f; --soft: #e4ecdc; --beige: #cbb896; --cream: #f6f6f1; --ink: #2f2e2b; --line: #e3e1da; --muted: #6b6a66; --red: #a4561e; }
   * { box-sizing: border-box; }

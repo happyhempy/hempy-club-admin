@@ -109,7 +109,7 @@
   /* connections */
   .conn { display: grid; gap: 12px; }
   .conn__head { display: flex; align-items: center; gap: 12px; }
-  .conn__logo { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; flex-shrink: 0; }
+  .conn__logo { width: 40px; height: 40px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; flex-shrink: 0; }
   .conn__title { flex: 1; min-width: 0; }
   .conn__title b { font-size: 15px; }
   .conn .status { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; background: #eee; color: var(--muted); white-space: nowrap; }
@@ -741,17 +741,53 @@
     };
   }
 
-  // ---------- connections (Klaviyo / Judge.me / Flashy) ----------
+  // ---------- connections ----------
+  var GROUPS = [
+    { kind: 'email', title: 'מייל ו-SMS', hint: 'פרטי המועדון של כל חבר נכנסים לאיש הקשר שלו, ואירועי המועדון מפעילים אוטומציות.' },
+    { kind: 'reviews', title: 'ביקורות', hint: 'נקודות על ביקורת מוצר.' },
+    { kind: 'helpdesk', title: 'שירות לקוחות', hint: 'הנציג רואה את מצב המועדון של הלקוח בתוך הפנייה.' },
+    { kind: 'automation', title: 'אוטומציות (Zapier, Make ועוד)', hint: 'כל אירוע במועדון נשלח לכתובת שלכם.' }
+  ];
+  var EMAIL_DOES = ['כל חבר מתעדכן: יתרה, דרגה, קישור חבר מביא חבר ותאריך תפוגה', 'בחיבור הראשון כל החברים הקיימים נשלחים'];
+  var EVENTS_LINE = 'אירועים לאוטומציות: הצטרפות · צבירה · מימוש · עלייה בדרגה · חבר הביא חבר · פקיעה';
   var TOOLS = {
-    klaviyo: { name: 'Klaviyo', color: '#232426', letter: 'K', label: 'Private API Key',
-      help: 'ב-Klaviyo: Settings ← API keys ← Create Private API Key. הרשאות: Accounts (Read), Profiles (Full), Events (Full). המפתח מתחיל ב-pk_.',
-      does: ['כל חבר מקבל בפרופיל: Club Points Balance, Club Tier, Club Referral URL, Club Points Expire At', 'אירועים לזרימות: Club Joined · Club Points Earned · Club Points Redeemed · Club Tier Achieved · Club Referral Completed · Club Points Expired', 'בחיבור הראשון כל החברים הקיימים נשלחים'] },
-    flashy: { name: 'Flashy', color: '#ff3d71', letter: 'F', label: 'API Key',
-      help: 'ב-Flashy: הגדרות ← API ← העתקת מפתח ה-API.',
-      does: ['כל חבר מתעדכן באנשי הקשר: club_points, club_tier, club_referral_url, club_points_expire, club_member', 'אירועים לאוטומציות: ClubJoined · ClubPointsEarned · ClubTierAchieved ועוד', 'בחיבור הראשון כל החברים הקיימים נשלחים'] },
-    judgeme: { name: 'Judge.me', color: '#1fa9a1', letter: 'J', label: 'Private API Token',
-      help: 'ב-Judge.me: Settings ← Integrations ← View API tokens ← Private API Token.',
-      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון (כמו שהחוק דורש)'] }
+    klaviyo: { name: 'Klaviyo', color: '#232426', letter: 'K', fields: [{ id: 'key', label: 'Private API Key', secret: true }],
+      help: 'Settings ← API keys ← Create Private API Key. הרשאות: Accounts (Read), Profiles (Full), Events (Full). מתחיל ב-pk_.',
+      does: EMAIL_DOES.concat([EVENTS_LINE, 'שמות השדות: Club Points Balance, Club Tier, Club Referral URL, Club Points Expire At']) },
+    omnisend: { name: 'Omnisend', color: '#1c1c1c', letter: 'O', fields: [{ id: 'key', label: 'API Key', secret: true }],
+      help: 'Store settings ← API keys ← Create API key (הרשאות Contacts ו-Events).',
+      does: EMAIL_DOES.concat([EVENTS_LINE, 'שדות מותאמים: club_points, club_tier, club_referral_url, club_points_expire']) },
+    mailchimp: { name: 'Mailchimp', color: '#ffe01b', ink: '#241c15', letter: 'M',
+      fields: [{ id: 'key', label: 'API Key', secret: true }, { id: 'list_id', label: 'Audience ID (לא חובה)', optional: true }],
+      help: 'Profile ← Extras ← API keys. בלי Audience ID נבחר הקהל הגדול ביותר. אנשי קשר חדשים נכנסים בלי הרשמה לדיוור.',
+      does: EMAIL_DOES.concat(['שדות שנוצרים לבד: CLUBPTS, CLUBTIER, CLUBREF, CLUBEXP', 'אירועים על איש הקשר (Customer Journeys)']) },
+    attentive: { name: 'Attentive', color: '#1b1b1b', letter: 'A', fields: [{ id: 'key', label: 'API Token', secret: true }],
+      help: 'Marketplace ← Create App ← הרשאות Custom Events ו-Custom Attributes (Write) ← העתקת ה-API key.',
+      does: ['כל חבר מתעדכן במאפיינים: club_points, club_tier, club_referral_url', EVENTS_LINE + ' (לזרימות SMS)'] },
+    flashy: { name: 'Flashy', color: '#ff3d71', letter: 'F', fields: [{ id: 'key', label: 'API Key', secret: true }],
+      help: 'הגדרות ← API ← העתקת מפתח ה-API.',
+      does: EMAIL_DOES.concat([EVENTS_LINE, 'שדות: club_points, club_tier, club_referral_url, club_points_expire']) },
+    activetrail: { name: 'ActiveTrail', color: '#00a0df', letter: 'AT',
+      fields: [{ id: 'key', label: 'API Token', secret: true }, { id: 'group_id', label: 'מספר קבוצה (Group ID)' }],
+      help: 'הגדרות ← API Apps ← יצירת טוקן. מספר הקבוצה מופיע בכתובת של הקבוצה.',
+      does: ['החברים נכנסים לקבוצה שבחרתם, בלי הרשמה לדיוור', 'השדות: ext21 = דרגה · ext22 = קישור חבר מביא חבר · num5 = יתרה · date5 = תפוגה'] },
+    smoove: { name: 'Smoove', color: '#7b2ff7', letter: 'S',
+      fields: [{ id: 'key', label: 'API Key', secret: true }, { id: 'list_id', label: 'מספר רשימה (לא חובה)', optional: true }],
+      help: 'הגדרות ← API ← העתקת המפתח. צרו קודם שדות בשמות club_points, club_tier, club_referral_url, club_points_expire.',
+      does: ['כל חבר מתעדכן כאיש קשר עם השדות שיצרתם', 'אם מילאתם מספר רשימה – החברים נכנסים אליה'] },
+    inforu: { name: 'Inforu', color: '#e4002b', letter: 'IN',
+      fields: [{ id: 'user', label: 'שם משתמש' }, { id: 'key', label: 'API Token', secret: true }],
+      help: 'בממשק Inforu: הגדרות ← API ← טוקן.',
+      does: ['החברים נכנסים לקבוצה "Declub"', 'השדות: Text20 = דרגה · Text21 = קישור חבר מביא חבר · Number4 = יתרה · Date8 = תפוגה'] },
+    judgeme: { name: 'Judge.me', color: '#1fa9a1', letter: 'J', fields: [{ id: 'key', label: 'Private API Token', secret: true }],
+      help: 'Settings ← Integrations ← View API tokens ← Private API Token.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון (כמו שהחוק דורש)'] },
+    gorgias: { name: 'Gorgias', color: '#161616', letter: 'G', fields: [],
+      help: 'לוחצים "חיבור", מעתיקים את הכתובת שתופיע, וב-Gorgias: Settings ← HTTP integration ← Add: Method GET, Trigger "Ticket created". אחר כך בפנייה: ⚙ ← Custom integrations.',
+      does: ['בכל פנייה הנציג רואה: חבר/לא, יתרה, דרגה, תאריך תפוגה וקישור חבר מביא חבר'] },
+    webhook: { name: 'Webhooks', color: '#47792b', letter: '↗', fields: [{ id: 'url', label: 'כתובת (https://...)' }],
+      help: 'ב-Zapier: Webhooks by Zapier ← Catch Hook, מעתיקים את הכתובת לכאן. ב-Make: Custom webhook. נשלחת בדיקה בחיבור.',
+      does: ['כל אירוע נשלח כ-POST עם JSON: topic, created_at, payload (כולל פרטי החבר)', 'חתימה: declub-signature = HMAC-SHA256 של "timestamp.body" עם המפתח הסודי'] }
   };
   async function connections() {
     view.innerHTML = '<p class="muted">טוען…</p>';
@@ -761,46 +797,46 @@
     if (!r.ok) { view.innerHTML = '<p class="err">' + esc(r.message) + '</p>'; return; }
     renderConnections(r.integrations || []);
   }
+  function copyBtn(text) { return '<button class="tab" data-copy="' + esc(text) + '">העתקה</button>'; }
   function renderConnections(list) {
-    view.innerHTML = '<p class="muted" style="margin-top:0">מחברים את מערכות השיווק שלכם, והמועדון מעדכן אותן לבד. המפתחות נשמרים בשרת ולא מוצגים שוב.</p><div class="conn">' +
-      list.map(function (x) {
-        var t = TOOLS[x.provider];
-        var status = !x.connected ? '<span class="status">לא מחובר</span>'
-          : x.last_error ? '<span class="status bad">שגיאה</span>' : '<span class="status on">מחובר</span>';
-        var body;
-        if (!x.connected) {
-          body = '<ul>' + t.does.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
-            '<div class="row-form"><input class="conn__key" type="password" autocomplete="off" spellcheck="false" placeholder="' + esc(t.label) + '" data-key>' +
-            (x.provider === 'judgeme' ? reviewInputs(x.settings) : '') +
-            '<button class="primary" data-connect>חיבור</button></div><small class="help">' + esc(t.help) + '</small>';
-        } else {
-          body = '<div class="muted">חשבון: <b>' + esc(x.account || t.name) + '</b> · מפתח ' + esc(x.key_hint || '') + ' · חובר ב-' + day(x.connected_at) +
-            (x.last_ok_at ? ' · עדכון אחרון ' + new Date(x.last_ok_at).toLocaleString('he-IL') : '') + '</div>' +
-            (x.last_error ? '<p class="err" dir="ltr" style="text-align:left">' + esc(x.last_error) + '</p>' : '') +
-            (x.provider === 'judgeme'
-              ? '<p>ביקורות שזיכו נקודות: <b>' + num(x.reviews_rewarded) + '</b> · סה״כ ' + nis(x.review_points_given) + '</p>' +
-                '<div class="row-form">' + reviewInputs(x.settings) + '<button class="primary" data-save>שמירה</button></div>'
-              : (x.events_waiting ? '<p class="muted">אירועים בתור לשליחה: ' + num(x.events_waiting) + '</p>' : '')) +
-            '<div class="row-form"><button class="link" data-disconnect>ניתוק</button></div>';
-        }
-        return '<div class="card" data-provider="' + x.provider + '"><div class="conn__head"><div class="conn__logo" style="background:' + t.color + '">' + t.letter +
-          '</div><div class="conn__title"><b>' + t.name + '</b></div>' + status + '</div><div class="conn__body">' + body + '</div></div>';
-      }).join('') + '</div>';
+    var connectedN = list.filter(function (x) { return x.connected; }).length;
+    view.innerHTML = '<p class="muted" style="margin-top:0">מחברים את הכלים שלכם, והמועדון מעדכן אותם לבד. המפתחות נשמרים בשרת ולא מוצגים שוב.' +
+      (connectedN ? ' <b>' + connectedN + ' מחוברים.</b>' : '') + '</p>' +
+      GROUPS.map(function (g) {
+        var items = list.filter(function (x) { return x.kind === g.kind && TOOLS[x.provider]; });
+        if (!items.length) return '';
+        return '<h2>' + g.title + '</h2><p class="muted" style="margin-top:-6px">' + g.hint + '</p><div class="conn">' + items.map(connCard).join('') + '</div>';
+      }).join('');
+    view.querySelectorAll('[data-copy]').forEach(function (b) {
+      b.onclick = function () {
+        var t = b.getAttribute('data-copy');
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { shopify.toast.show('הועתק'); },
+          function () { window.prompt('העתיקו:', t); });
+      };
+    });
+    view.querySelectorAll('[data-open]').forEach(function (b) {
+      b.onclick = function () { var el = b.closest('[data-provider]'); el.querySelector('.conn__body').hidden = !el.querySelector('.conn__body').hidden; };
+    });
     view.querySelectorAll('[data-provider]').forEach(function (el) {
       var provider = el.getAttribute('data-provider');
-      var name = TOOLS[provider].name;
+      var t = TOOLS[provider];
       function reviewSettings() {
         var a = el.querySelector('[data-rp]'), b = el.querySelector('[data-pp]');
         return a ? { review_points: Number(a.value), photo_points: Number(b.value) } : undefined;
       }
       var c = el.querySelector('[data-connect]');
       if (c) c.onclick = async function () {
-        var key = el.querySelector('[data-key]').value.trim();
-        if (!key) { shopify.toast.show('נא להדביק את המפתח', { isError: true }); return; }
+        var fields = {}, missing = false;
+        t.fields.forEach(function (f) {
+          var v = el.querySelector('[data-f="' + f.id + '"]').value.trim();
+          if (!v && !f.optional) missing = true;
+          fields[f.id] = v;
+        });
+        if (missing) { shopify.toast.show('נא למלא את כל השדות', { isError: true }); return; }
         c.disabled = true; c.textContent = 'בודק…';
-        var res = await api('integration_connect', {}, { provider: provider, key: key, settings: reviewSettings() });
+        var res = await api('integration_connect', {}, { provider: provider, fields: fields, settings: reviewSettings() });
         if (!res.ok) { c.disabled = false; c.textContent = 'חיבור'; shopify.toast.show(res.message || 'החיבור נכשל', { isError: true }); return; }
-        shopify.toast.show(name + ' חובר');
+        shopify.toast.show(t.name + ' חובר');
         renderConnections(res.integrations);
       };
       var s = el.querySelector('[data-save]');
@@ -812,13 +848,46 @@
       };
       var d = el.querySelector('[data-disconnect]');
       if (d) d.onclick = async function () {
-        if (!confirm('לנתק את ' + name + '? המועדון יפסיק לעדכן אותו.')) return;
+        if (!confirm('לנתק את ' + t.name + '? המועדון יפסיק לעדכן אותו.')) return;
         var res = await api('integration_disconnect', {}, { provider: provider });
         if (!res.ok) { shopify.toast.show('שגיאה', { isError: true }); return; }
-        shopify.toast.show(name + ' נותק');
+        shopify.toast.show(t.name + ' נותק');
         renderConnections(res.integrations);
       };
     });
+  }
+  function connCard(x) {
+    var t = TOOLS[x.provider], dt = x.details || {};
+    var status = !x.connected ? '<span class="status">לא מחובר</span>'
+      : x.last_error ? '<span class="status bad">שגיאה</span>' : '<span class="status on">מחובר</span>';
+    var body;
+    if (!x.connected) {
+      body = '<ul>' + t.does.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
+        '<div class="row-form">' + t.fields.map(function (f) {
+          return '<input class="conn__key" ' + (f.secret ? 'type="password" autocomplete="off"' : 'type="text"') + ' spellcheck="false" placeholder="' + esc(f.label) + '" data-f="' + f.id + '">';
+        }).join('') + (x.provider === 'judgeme' ? reviewInputs(x.settings) : '') +
+        '<button class="primary" data-connect>חיבור</button></div><small class="help">' + esc(t.help) + '</small>';
+    } else {
+      var extra = [];
+      if (dt.list_id) extra.push('קהל/רשימה: ' + esc(dt.list_id));
+      if (dt.group_id) extra.push('קבוצה: ' + esc(dt.group_id));
+      if (dt.user) extra.push('משתמש: ' + esc(dt.user));
+      if (dt.url) extra.push('<span dir="ltr">' + esc(dt.url) + '</span>');
+      if (dt.smoove_fields) extra.push(dt.smoove_fields.length ? 'שדות: ' + dt.smoove_fields.map(esc).join(', ') : 'לא נמצאו שדות club_* ב-Smoove');
+      body = '<div class="muted">' + [esc(x.account || t.name), x.key_hint ? 'מפתח ' + esc(x.key_hint) : '', 'חובר ב-' + day(x.connected_at)].concat(extra).filter(Boolean).join(' · ') +
+          (x.last_ok_at ? ' · עדכון אחרון ' + new Date(x.last_ok_at).toLocaleString('he-IL') : '') + '</div>' +
+        (x.last_error ? '<p class="err" dir="ltr" style="text-align:left">' + esc(x.last_error) + '</p>' : '') +
+        (dt.gorgias_url ? '<p>הכתובת להדבקה ב-Gorgias:</p><div class="row-form"><input class="conn__key" readonly value="' + esc(dt.gorgias_url) + '">' + copyBtn(dt.gorgias_url) + '</div><small class="help">' + esc(t.help) + '</small>' : '') +
+        (dt.webhook_secret ? '<p>מפתח החתימה (לאימות אצלכם):</p><div class="row-form"><input class="conn__key" readonly type="password" value="' + esc(dt.webhook_secret) + '">' + copyBtn(dt.webhook_secret) + '</div>' : '') +
+        (x.provider === 'judgeme'
+          ? '<p>ביקורות שזיכו נקודות: <b>' + num(x.reviews_rewarded) + '</b> · סה״כ ' + nis(x.review_points_given) + '</p>' +
+            '<div class="row-form">' + reviewInputs(x.settings) + '<button class="primary" data-save>שמירה</button></div>'
+          : (x.events_waiting ? '<p class="muted">אירועים בתור לשליחה: ' + num(x.events_waiting) + '</p>' : '')) +
+        '<div class="row-form"><button class="link" data-disconnect>ניתוק</button></div>';
+    }
+    return '<div class="card" data-provider="' + x.provider + '"><div class="conn__head"><div class="conn__logo" style="background:' + t.color + (t.ink ? ';color:' + t.ink : '') + '">' + t.letter +
+      '</div><div class="conn__title"><b>' + t.name + '</b></div>' + status + (x.connected ? '' : '<button class="link" data-open>פרטים</button>') +
+      '</div><div class="conn__body"' + (x.connected ? '' : ' hidden') + '>' + body + '</div></div>';
   }
   function reviewInputs(s) {
     s = s || {};

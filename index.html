@@ -323,9 +323,11 @@
         kpi('נקודות שמומשו', nis(c.redeemed), delta(c.redeemed, p.redeemed), num(c.redemptions) + ' הזמנות עם נקודות') +
         kpi('החזר על כל ₪ הנחה', roi ? roi.toFixed(1) + ' ₪' : '—', '', 'הכנסה מחברים ÷ נקודות שמומשו') +
       '</div>' +
-      (r.stats.expiring && r.stats.expiring.members
-        ? '<div class="card expwarn">⏳ <b>' + num(r.stats.expiring.members) + ' חברים</b> עם <b>' + nis(r.stats.expiring.points) + '</b> שיפוגו ב-30 הימים הקרובים. ' +
-          'המועדון מזכיר להם באתר ובעגלה, ושולח את האירוע לכלי המייל המחוברים. ב-Shopify Messaging אפשר לשלוח להם קמפיין לפי השדה "מועדון: הנקודות פגות ב".</div>'
+      (r.stats.expiring && (r.stats.expiring.members || r.stats.expiring.pending)
+        ? '<div class="card expwarn">⏳ <b>יפוגו ב-30 הימים הקרובים:</b> ' +
+          [r.stats.expiring.members ? '<b>' + num(r.stats.expiring.members) + ' חברים</b> עם ' + nis(r.stats.expiring.points) : '',
+           r.stats.expiring.pending ? '<b>' + num(r.stats.expiring.pending) + ' לקוחות שקנו ועוד לא הצטרפו</b> עם ' + nis(r.stats.expiring.pending_points) + ' שנשמרו להם' : ''].filter(Boolean).join(' · ') +
+          '. <span class="muted">לחברים המועדון מזכיר באתר, בעגלה ובכלי המייל המחוברים. ב-Shopify Messaging אפשר לשלוח קמפיין לפי השדה "מועדון: הנקודות פגות ב".</span></div>'
         : '') +
       '<div class="panel">' +
         '<div class="panel__head"><b>30 הימים האחרונים</b><div class="seg">' +

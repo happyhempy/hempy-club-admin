@@ -1242,7 +1242,8 @@
           '<p class="hint" style="margin:8px 0 0">צבע הכיתוב על הכפתורים נבחר לבד כך שיהיה קריא.</p>') +
         step(2, 'איפה יהיה הכפתור הצף?', '<div class="posopts">' + posThumb('right', 'למטה בצד ימין') + posThumb('left', 'למטה בצד שמאל') + '</div>',
           ' data-focus="position"') +
-        step(3, 'מה כתוב על הכפתור', '<div class="fields"><label class="f">טקסט<input type="text" maxlength="24" data-b="launcher_label" value="' + esc(b.launcher_label) + '"></label></div>' +
+        step(3, 'מה כתוב על הכפתור', '<div class="fields"><label class="f">טקסט<input type="text" maxlength="24" data-b="launcher_label" value="' + esc(b.launcher_label) + '"></label>' +
+          '<label class="f">שם המועדון (בעמוד התודה אחרי קנייה)<input type="text" maxlength="40" data-b="club_name" value="' + esc(b.club_name || '') + '" placeholder="מועדון החברים של החנות"></label></div>' +
           '<p class="hint" style="margin:10px 0 6px">אייקון</p><div class="icons">' + ICON_SET.map(function (ic) {
             return '<button data-ic="' + ic + '" aria-pressed="' + (b.launcher_icon === ic) + '">' + ic + '</button>'; }).join('') + '</div>', ' data-focus="show_launcher"') +
         step(4, 'מה יופיע באתר', '<div class="elopts">' + ELEMENTS.map(function (el) {

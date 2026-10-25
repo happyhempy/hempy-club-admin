@@ -1478,8 +1478,8 @@
       var provider = el.getAttribute('data-provider');
       var t = TOOLS[provider];
       function reviewSettings() {
-        var a = el.querySelector('[data-rp]'), b = el.querySelector('[data-pp]');
-        return a ? { review_points: Number(a.value), photo_points: Number(b.value) } : undefined;
+        var a = el.querySelector('[data-rp]'), b = el.querySelector('[data-pp]'), nm = el.querySelector('[data-nm]');
+        return a ? { review_points: Number(a.value), photo_points: Number(b.value), members_only: nm ? !nm.checked : false } : undefined;
       }
       var c = el.querySelector('[data-connect]');
       if (c) c.onclick = async function () {
@@ -1550,8 +1550,11 @@
   function reviewInputs(s) {
     s = s || {};
     return '<label>נקודות לביקורת <input class="num" type="number" min="0" max="100" data-rp value="' + esc(s.review_points == null ? 5 : s.review_points) + '"></label>' +
-      '<label>תוספת לתמונה <input class="num" type="number" min="0" max="100" data-pp value="' + esc(s.photo_points == null ? 5 : s.photo_points) + '"></label>';
+      '<label>תוספת לתמונה <input class="num" type="number" min="0" max="100" data-pp value="' + esc(s.photo_points == null ? 5 : s.photo_points) + '"></label>' +
+      '<label class="tg" title="בלי צעד נוסף לפני הביקורת: הכסף נשמר ללקוח ומחכה לו כשהוא מצטרף">' +
+        '<input type="checkbox" data-nm ' + (s.members_only ? '' : 'checked') + '> גם לקונים שעוד לא חברים (נשמר להם עד שיצטרפו)</label>';
   }
+
 
   // ---------- tabs ----------
   function select(tab, silent) {

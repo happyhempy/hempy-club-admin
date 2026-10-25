@@ -40,7 +40,7 @@
   th { background: #faf9f6; font-size: 12px; color: var(--muted); font-weight: 700; }
   tr.row { cursor: pointer; } tr.row:hover td { background: #faf9f6; }
   .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: var(--soft); }
-  .pill.bronze { background: #f4e6dc; color: #8a5330; } .pill.silver { background: #e9eef1; color: #55636b; } .pill.gold { background: #f6efd6; color: #8a6c12; } .pill.platinum { background: #e8e6f3; color: #4b3f8f; }
+  .pill.bronze { background: #f4e6dc; color: #8a5330; } .pill.silver { background: #e9eef1; color: #55636b; } .pill.gold { background: #f6efd6; color: #8a6c12; } .pill.platinum { background: #e8e6f3; color: #4b3f8f; } .pill.diamond { background: #dff3f7; color: #0e6070; }
   .pill.wait { background: #eee; color: var(--muted); }
   input, select { font: inherit; padding: 9px 12px; border: 1px solid #cfccc3; border-radius: 8px; background: #fff; }
   .search { width: 100%; max-width: 420px; }
@@ -337,7 +337,7 @@
 (function () {
   var API = 'https://xblhodzcowleloqsveun.supabase.co/functions/v1/club-admin';
   var STORE = 'https://admin.shopify.com/store/happy-hempy';
-  var TIER = { bronze: 'ארד', silver: 'כסף', gold: 'זהב', platinum: 'פלטינה' };
+  var TIER = { bronze: 'ארד', silver: 'כסף', gold: 'זהב', platinum: 'פלטינה', diamond: 'יהלום' };
   var REASON = { join_bonus: 'מתנת הצטרפות', order_earn: 'קנייה', second_order_bonus: 'בונוס קנייה שנייה', tier_upgrade_bonus: 'מתנת דרגה',
     refund: 'החזרה', cancel: 'ביטול', redemption: 'מימוש', redemption_restored: 'קוד שלא נוצל', expiry: 'פג תוקף', manual_adjust: 'עדכון ידני',
     profile_bonus: 'השלמת פרופיל', review: 'ביקורת', referral: 'חבר מביא חבר', instagram: 'אינסטגרם' };
@@ -481,7 +481,7 @@
       '<div class="strip">' +
         '<span>יתרות פתוחות של חברים: <b>' + nis(t.balance_members) + '</b></span>' +
         '<span>קודים פעילים: <b>' + num(t.codes_active) + '</b></span>' +
-        '<span>דרגות: <b>' + num(tiers.bronze || 0) + '</b> ארד · <b>' + num(tiers.silver || 0) + '</b> כסף · <b>' + num(tiers.gold || 0) + '</b> זהב' + (tiers.platinum ? ' · <b>' + num(tiers.platinum) + '</b> פלטינה' : '') + '</span>' +
+        '<span>דרגות: <b>' + num(tiers.bronze || 0) + '</b> ארד · <b>' + num(tiers.silver || 0) + '</b> כסף · <b>' + num(tiers.gold || 0) + '</b> זהב' + (tiers.platinum ? ' · <b>' + num(tiers.platinum) + '</b> פלטינה' : '') + (tiers.diamond ? ' · <b>' + num(tiers.diamond) + '</b> יהלום' : '') + '</span>' +
         '<span>אחוז מימוש: <b>' + rate + '%</b></span>' +
       '</div>' +
       '<div class="potential"><b>💡 פוטנציאל:</b> ' + num(t.pending_buyers) + ' לקוחות מהעבר עוד לא הצטרפו, ויש להם ' + nis(t.balance_pending) + ' בנקודות שמחכות. כל אחד מהם הוא סיבה לקמפיין.</div>';
@@ -579,7 +579,7 @@
     if (mySeq !== viewSeq || !document.getElementById('list')) return;
     var tiers = r.tiers || {}, allN = Object.keys(tiers).reduce(function (a, k) { return a + tiers[k]; }, 0);
     view.querySelector('[data-chips]').innerHTML = ML.status === 'pending' ? '' :
-      [''].concat(['bronze', 'silver', 'gold', 'platinum'].filter(function (t) { return tiers[t]; })).map(function (t) {
+      [''].concat(['bronze', 'silver', 'gold', 'platinum', 'diamond'].filter(function (t) { return tiers[t]; })).map(function (t) {
         return '<button class="chip' + (ML.tier === t ? ' on' : '') + '" data-tier="' + t + '">' + (t ? esc(tname(t)) : 'כל הדרגות') + ' <b>' + num(t ? tiers[t] : allN) + '</b></button>';
       }).join('');
     view.querySelectorAll('[data-tier]').forEach(function (b) { b.onclick = function () { ML.tier = b.getAttribute('data-tier'); ML.offset = 0; loadMembers(); }; });
@@ -823,8 +823,8 @@
   function get(path) { var v = prog; path.split('.').forEach(function (k) { v = v == null ? v : v[k]; }); return v; }
   function setv(path, val) { var ks = path.split('.'), o = prog; ks.slice(0, -1).forEach(function (k) { o = o[k] = o[k] || {}; }); o[ks[ks.length - 1]] = val; }
   function u(n) { return prog.currency.mode === 'cashback' ? num(n) + ' ₪' : num(n) + ' ' + esc(prog.currency.name); }
-  var ALL_TIERS = ['bronze', 'silver', 'gold', 'platinum'];
-  var MEDAL = { bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎' };
+  var ALL_TIERS = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+  var MEDAL = { bronze: '🥉', silver: '🥈', gold: '🥇', platinum: '💎', diamond: '👑' };
   function activeT() { return prog.tiers.enabled ? ALL_TIERS.slice(0, prog.tiers.count || 3) : ['bronze']; }
   function inp(path, label, opts) {
     opts = opts || {};
@@ -871,9 +871,10 @@
             '<input type="number" min="0" data-p="tiers.' + t + '.amount" value="' + esc(p.tiers[t].amount) + '">' +
             '<input type="number" min="0" data-p="tiers.' + t + '.bonus" value="' + esc(p.tiers[t].bonus) + '">') + '</div>';
     });
-    var count = '<div class="fields" style="margin-bottom:12px"><span class="tg">כמה דרגות?</span>' + [3, 4].map(function (n) {
+    var count = '<div class="fields" style="margin-bottom:12px"><span class="tg">כמה דרגות?</span>' + [3, 4, 5].map(function (n) {
       return '<label class="tg"><input type="radio" name="tcount" data-p="tiers.count" data-t="count" value="' + n + '"' + ((p.tiers.count || 3) === n ? ' checked' : '') + '> ' + n + ' דרגות' +
-        (n === 3 ? ' <span class="muted">(ארד · כסף · זהב)</span>' : ' <span class="muted">(+ ' + esc(p.tiers.names.platinum || 'פלטינה') + ')</span>') + '</label>';
+        (n === 3 ? ' <span class="muted">(ארד · כסף · זהב)</span>' : n === 4 ? ' <span class="muted">(+ ' + esc(p.tiers.names.platinum || 'פלטינה') + ')</span>'
+          : ' <span class="muted">(+ ' + esc(p.tiers.names.platinum || 'פלטינה') + ' + ' + esc((p.tiers.names && p.tiers.names.diamond) || 'יהלום') + ')</span>') + '</label>';
     }).join('') + '</div>';
     rows = count + rows;
     return rows + '<p class="hint" style="margin-top:8px">מספיק לעמוד באחד התנאים. 0 = התנאי לא בשימוש. נבדק על 12 החודשים האחרונים, ומי שלא עומד בתנאי שנה שלמה יורד דרגה.</p>' +
@@ -922,7 +923,7 @@
         if (t === 'bool') setv(path, el.checked);
         else if (t === 'text') setv(path, el.value);
         else if (t === 'perShekel') setv('currency.point_value', 1 / Math.max(1, Number(el.value) || 1));
-        else if (t === 'count') setv('tiers.count', Number(el.value) === 4 ? 4 : 3);
+        else if (t === 'count') setv('tiers.count', [3, 4, 5].indexOf(Number(el.value)) >= 0 ? Number(el.value) : 3);
         else setv(path, Number(el.value));
         if (path === 'currency.mode') setv('currency.point_value', el.value === 'cashback' ? 1 : (prog.currency.point_value === 1 ? 0.05 : prog.currency.point_value));
         prog.template = 'custom';

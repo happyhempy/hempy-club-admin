@@ -1418,6 +1418,26 @@
     judgeme: { name: 'Judge.me', color: '#1fa9a1', letter: 'J', fields: [{ id: 'key', label: 'Private API Token', secret: true }],
       help: 'Settings ← Integrations ← View API tokens ← Private API Token.',
       does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון (כמו שהחוק דורש)'] },
+    loox: { name: 'Loox', color: '#111111', letter: 'L',
+      fields: [{ id: 'store_id', label: 'Public Store ID' }, { id: 'key', label: 'API Key', secret: true }],
+      help: 'ב-Loox: Settings ← API Keys ← Generate. ה-Public Store ID מופיע באותו מסך. זמין בתוכניות Convert ו-Unlimited.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון'] },
+    okendo: { name: 'Okendo', color: '#5b3cc4', letter: 'Ok',
+      fields: [{ id: 'user', label: 'User ID' }, { id: 'key', label: 'API Key', secret: true }],
+      help: 'ב-Okendo: Settings ← Integrations ← API. מעתיקים את ה-User ID ואת ה-API Key. דורש תוכנית שכוללת API.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון'] },
+    fera: { name: 'Fera', color: '#ff5a5f', letter: 'Fe',
+      fields: [{ id: 'key', label: 'Secret API Key', secret: true }],
+      help: 'ב-Fera: Integrations ← API Keys ← מעתיקים את ה-Secret Key.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון'] },
+    yotpo: { name: 'Yotpo Reviews', color: '#0042e4', letter: 'Y',
+      fields: [{ id: 'store_id', label: 'Store ID (App Key)' }, { id: 'key', label: 'API Secret', secret: true }],
+      help: 'ב-Yotpo: Settings ← General Settings ← Store ID ו-API Secret (רק מנהל החשבון רואה את ה-Secret).',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ב-Yotpo אין מידע על תמונות בביקורת, לכן אין תוספת לתמונה', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון'] },
+    reviewsio: { name: 'REVIEWS.io', color: '#12cf6c', ink: '#0b2b1a', letter: 'R',
+      fields: [{ id: 'store_id', label: 'Store ID' }, { id: 'key', label: 'API Key', secret: true }],
+      help: 'ב-REVIEWS.io: Integrations ← API. מעתיקים את ה-Store ID ואת ה-API Key. דורש תוכנית Plus.',
+      does: ['חבר מועדון שכותב ביקורת מקבל נקודות (פעם אחת לכל מוצר)', 'ביקורת עם תמונה מקבלת תוספת', 'רק ביקורות שנכתבו אחרי החיבור. הנקודות לא תלויות בציון'] },
     gorgias: { name: 'Gorgias', color: '#161616', letter: 'G', fields: [],
       help: 'לוחצים "חיבור", מעתיקים את הכתובת שתופיע, וב-Gorgias: Settings ← HTTP integration ← Add: Method GET, Trigger "Ticket created". אחר כך בפנייה: ⚙ ← Custom integrations.',
       does: ['בכל פנייה הנציג רואה: חבר/לא, יתרה, דרגה, תאריך תפוגה וקישור חבר מביא חבר'] },
@@ -1502,13 +1522,14 @@
       body = '<ul>' + t.does.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>' +
         '<div class="row-form">' + t.fields.map(function (f) {
           return '<input class="conn__key" ' + (f.secret ? 'type="password" autocomplete="off"' : 'type="text"') + ' spellcheck="false" placeholder="' + esc(f.label) + '" data-f="' + f.id + '">';
-        }).join('') + (x.provider === 'judgeme' ? reviewInputs(x.settings) : '') +
+        }).join('') + (x.kind === 'reviews' ? reviewInputs(x.settings) : '') +
         '<button class="primary" data-connect>חיבור</button></div><small class="help">' + esc(t.help) + '</small>';
     } else {
       var extra = [];
       if (dt.list_id) extra.push('קהל/רשימה: ' + esc(dt.list_id));
       if (dt.group_id) extra.push('קבוצה: ' + esc(dt.group_id));
       if (dt.user) extra.push('משתמש: ' + esc(dt.user));
+      if (dt.store_id) extra.push('חנות: ' + esc(dt.store_id));
       if (dt.url) extra.push('<span dir="ltr">' + esc(dt.url) + '</span>');
       if (dt.smoove_fields) extra.push(dt.smoove_fields.length ? 'שדות: ' + dt.smoove_fields.map(esc).join(', ') : 'לא נמצאו שדות club_* ב-Smoove');
       body = '<div class="muted">' + [esc(x.account || t.name), x.key_hint ? 'מפתח ' + esc(x.key_hint) : '', 'חובר ב-' + day(x.connected_at)].concat(extra).filter(Boolean).join(' · ') +
@@ -1516,7 +1537,7 @@
         (x.last_error ? '<p class="err" dir="ltr" style="text-align:left">' + esc(x.last_error) + '</p>' : '') +
         (dt.gorgias_url ? '<p>הכתובת להדבקה ב-Gorgias:</p><div class="row-form"><input class="conn__key" readonly value="' + esc(dt.gorgias_url) + '">' + copyBtn(dt.gorgias_url) + '</div><small class="help">' + esc(t.help) + '</small>' : '') +
         (dt.webhook_secret ? '<p>מפתח החתימה (לאימות אצלכם):</p><div class="row-form"><input class="conn__key" readonly type="password" value="' + esc(dt.webhook_secret) + '">' + copyBtn(dt.webhook_secret) + '</div>' : '') +
-        (x.provider === 'judgeme'
+        (x.kind === 'reviews'
           ? '<p>ביקורות שזיכו נקודות: <b>' + num(x.reviews_rewarded) + '</b> · סה״כ ' + nis(x.review_points_given) + '</p>' +
             '<div class="row-form">' + reviewInputs(x.settings) + '<button class="primary" data-save>שמירה</button></div>'
           : (x.events_waiting ? '<p class="muted">אירועים בתור לשליחה: ' + num(x.events_waiting) + '</p>' : '')) +

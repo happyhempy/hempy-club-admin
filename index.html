@@ -302,6 +302,8 @@
   @media (max-width: 800px) { .kpis { grid-template-columns: 1fr 1fr; } .two { grid-template-columns: 1fr; } }
   @media (max-width: 700px) { .detail { grid-template-columns: 1fr; } .v { font-size: 22px; } }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700&family=Heebo:wght@400;700&family=Rubik:wght@400;700&family=Varela+Round&family=Secular+One&family=Frank+Ruhl+Libre:wght@400;700&display=swap">
+<style>.fontopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}.fontopt{border:1px solid #d0d0d0;background:#fff;border-radius:10px;padding:10px;font-size:15px;cursor:pointer;text-align:center}.fontopt.on{border:2px solid var(--brand,#6c4bf4);font-weight:700}</style>
 </head>
 <body>
 <div class="wrap">
@@ -1149,6 +1151,10 @@
   var PV = { page: 'home', device: 'desktop', hl: null };
   var SWATCHES = ['#47792b', '#1f6f5c', '#2563eb', '#6c4bf4', '#c2185b', '#e4572e', '#1d1a2b', '#b08a1e'];
   var ICON_SET = ['⭐', '🎁', '💎', '👑', '💚', '🏆', '✨', '🛍️'];
+  var FONTS = [{ v: 'inherit', label: 'כמו באתר', css: 'inherit' }, { v: 'assistant', label: 'Assistant', css: "'Assistant'" },
+    { v: 'heebo', label: 'Heebo', css: "'Heebo'" }, { v: 'rubik', label: 'Rubik', css: "'Rubik'" }, { v: 'varela', label: 'Varela Round', css: "'Varela Round'" },
+    { v: 'secular', label: 'Secular One', css: "'Secular One'" }, { v: 'frank', label: 'Frank Ruhl Libre', css: "'Frank Ruhl Libre'" }];
+  function fontCss(v) { var f = FONTS.filter(function (x) { return x.v === v; })[0]; return f && f.v !== 'inherit' ? f.css + ', sans-serif' : 'inherit'; }
   var CORNERS = [{ v: 0, label: 'מרובע' }, { v: 12, label: 'מעוגל' }, { v: 99, label: 'עגול' }];
   async function designView() {
     view.innerHTML = '<p class="muted">טוען…</p>';
@@ -1218,7 +1224,7 @@
       '<div class="seg2">' + [['desktop', '🖥 מחשב'], ['phone', '📱 טלפון']].map(function (x) {
         return '<button data-dev="' + x[0] + '" aria-pressed="' + (PV.device === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       '<div class="mock ' + (phone ? 'mock--phone' : 'mock--desk') + '">' + (phone ? '<i class="mock__notch"></i>' : '<div class="mock__chrome"><i></i><i></i><i></i><span>www.your-store.co.il</span></div>') +
-        '<div class="mock__page">' + header + body + fab + (PV.hl === 'position' ? spots : '') + '</div></div>' +
+        '<div class="mock__page" style="font-family:' + fontCss(b.font) + '">' + header + body + fab + (PV.hl === 'position' ? spots : '') + '</div></div>' +
       '<p class="hint pvnote">' + (PV.hl === 'position' ? 'לחצו על הפינה שבה תרצו את הכפתור.' : 'זו תצוגה לדוגמה. באתר שלכם הכפתור והצבעים ייראו כך על העיצוב שלכם.') + '</p>';
   }
   function renderDesign() {
@@ -1254,6 +1260,10 @@
           }).join('') + '</div>') +
         step(5, 'צורת הכפתורים', '<div class="cornopts">' + CORNERS.map(function (c) {
             return '<button class="cornopt' + (b.corner === c.v ? ' on' : '') + '" data-corner="' + c.v + '"><i style="border-radius:' + Math.min(c.v, 14) + 'px;background:' + b.primary + '"></i>' + c.label + '</button>'; }).join('') + '</div>') +
+        step(6, 'גופן', '<div class="fontopts">' + FONTS.map(function (f) {
+            return '<button class="fontopt' + ((b.font || 'inherit') === f.v ? ' on' : '') + '" data-font="' + f.v + '" style="font-family:' + fontCss(f.v) + '">' +
+              (f.v === 'inherit' ? 'כמו באתר' : 'אבגד ' + f.label) + '</button>'; }).join('') + '</div>' +
+          '<p class="hint" style="margin:8px 0 0">"כמו באתר" משתמש בגופן של התבנית שלכם, וזו ההמלצה ברוב המקרים.</p>') +
       '</div>' +
       '<div class="pv2">' + previewHtml() + '</div>' +
       '</div>' +
@@ -1279,6 +1289,7 @@
     }
     view.querySelectorAll('[data-ic]').forEach(function (el) { el.onclick = function () { PV.hl = 'show_launcher'; setBrand('launcher_icon', el.getAttribute('data-ic')); }; });
     view.querySelectorAll('[data-pos]').forEach(function (el) { el.onclick = function () { PV.hl = 'position'; PV.page = 'home'; setBrand('position', el.getAttribute('data-pos')); }; });
+    view.querySelectorAll('[data-font]').forEach(function (el) { el.onclick = function () { PV.page = 'cart'; PV.hl = null; setBrand('font', el.getAttribute('data-font')); }; });
     view.querySelectorAll('[data-corner]').forEach(function (el) { el.onclick = function () { PV.page = 'cart'; PV.hl = null; setBrand('corner', Number(el.getAttribute('data-corner'))); }; });
     view.querySelectorAll('[data-pg]').forEach(function (el) { el.onclick = function () { PV.page = el.getAttribute('data-pg'); PV.hl = null; renderDesign(); }; });
     view.querySelectorAll('[data-dev]').forEach(function (el) { el.onclick = function () { PV.device = el.getAttribute('data-dev'); renderDesign(); }; });
